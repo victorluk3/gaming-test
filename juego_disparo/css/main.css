@@ -1,0 +1,29 @@
+body {
+
+    cursor:url('../img/mira-roja.png'), crosshair;
+}
+
+.content {
+    width:700px;
+    height:700px;
+    margin: 0 auto;
+    z-index: 2;
+    border: 1px solid black;
+    background: url('https://images.unsplash.com/photo-1465101162946-4377e57745c3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8c3BhY2UlMjBiYWNrZ3JvdW5kfGVufDB8fDB8fHww&w=1000&q=80');
+  }
+
+  .bala {
+    border: 1px solid black;
+    background: yellow;
+    border-radius: 5px;
+    width: 10px;
+    height: 10px;
+  }
+
+  .target {
+    background: rgba(0,128,0,0.5);
+  }
+
+  .target:hover {
+    background: green;
+  }

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/main.css">
+    
+    <title>Document</title>
+</head>
+
+<body>
+    
+    <div class="content" id="content">
+        <div id="objetivos">
+
+        </div>
+        <div id="arma" style="position: absolute; top:500px">
+            <img src="img/arma.jpg" alt="" width="50px" >
+        </div>
+        <div style="position: absolute; top: 590px" onclick="mesa()">
+            <img src="img/mesa.jpg" width="700px" height="119px" >
+        </div>
+    </div>
+    <div style="margin: 0 auto; text-align: center;">
+        <button onclick="generar()">AGAIN</button>
+    </div>
+    <!-- <img src="img/mira-roja.png" id="mira"> -->
+    <div id="mira" onclick="miraclick()"></div>
+</body>
+<script src="js/arma-script.js"></script>
+<script src="js/main.js"></script>
+
+
+<script>
+
+    function mesa(){
+        console.log('mesa')
+    }
+</script>
+
+
+</html>

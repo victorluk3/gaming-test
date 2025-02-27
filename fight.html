@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <center>
+        <canvas id="canvas" width="500" height="250" style="margin: 0 auto;border: 1px solid black"></canvas>
+    </center>
+    <div>
+
+    </div>
+    <button id="left" class="btn">LEFT</button>
+    <button id="up" class="btn">UP</button>
+    <button id="right" class="btn">RIGHT</button>
+
+
+    <div style="display: inline-block;width: 100px;">
+
+    </div>
+    <button class="btn" id="attack" style="display:none;float: right;margin-right: 15px;">punch</button>
+    <button class="btn" id="ok" style="display:block;float: right;margin-right: 15px;">OK</button>
+
+
+</body>
+<style>
+    .btn {
+        display: inline-block;
+        padding: 10px;
+        background: gray;
+        cursor: pointer;
+        -webkit-user-select: none; /* Safari */
+        -ms-user-select: none; /* IE 10 and IE 11 */
+        user-select: none; /* Standard syntax */
+    }
+</style>
+<script src="fight.js"></script>
+</html>
