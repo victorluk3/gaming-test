@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
   <title>Pixel Art App</title>
   <style>
     body {
@@ -130,11 +131,11 @@
           <label class="file-button">🧩 Plantilla
             <input type="file" id="templateFile" onchange="loadTemplate(event)" hidden />
           </label>
-
+          <button onclick="share_template()"  class="file-button" title="Compartir plantilla actual">🔗</button>
           
-          <label class="file-button" title="Carga tus avances">📂
+          <!-- <label class="file-button" title="Carga tus avances">📂
             <input type="file" id="loadFile" onchange="loadArt(event)" hidden />
-          </label>
+          </label> -->
           <button onclick="saveArt()" class="file-button" title="Guarda tus avances">💾</button>
           <button onclick="exportAsPNG()" class="file-button" title="Guardalo como imagen!">📤 🖼️</button>
           <button onclick="validateTemplate()" class="file-button">🧹 Validar</button>
@@ -244,12 +245,12 @@
     function saveArt() {
       const pixels = [...canvas.children].map(p => p.style.backgroundColor);
       const data = JSON.stringify({ size, pixels });
-      const blob = new Blob([data], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "pixel-art.json";
+      // const blob = new Blob([data], { type: "application/json" });
+      // const a = document.createElement("a");
+      // a.href = URL.createObjectURL(blob);
+      // a.download = "pixel-art.json";
       localStorage.setItem('art', data)
-      a.click();
+      // a.click();
     }
 
     function loadArt(event) {
@@ -483,17 +484,45 @@ function rgbToHex(rgb) {
       const hex = parseInt(c).toString(16);
       return hex.length === 1 ? "0" + hex : hex;
     }).join("");
-  }
+}
+
+function share_template(){
+  let template = localStorage.getItem('template')
+  const compressed = LZString.compressToEncodedURIComponent(template);
+  const shareUrl = `${window.location.origin}${window.location.pathname}?tpl=${compressed}`;
+  console.log(shareUrl);
+}
   
   window.onload = function() {
     let template = localStorage.getItem('template')
     if(template != null){
         loadTemplateMethod(JSON.parse(template))
     }
+
+    const params = new URLSearchParams(window.location.search);
+    const compressedTpl = params.get("tpl");
+    if (compressedTpl) {
+      try {
+        const jsonStr = LZString.decompressFromEncodedURIComponent(compressedTpl);
+        const data = JSON.parse(jsonStr);
+        if(!data.pallete && !data.template){
+          return
+        }
+
+        loadTemplateMethod(data);
+        history.replaceState(null, "", window.location.pathname);
+      } catch (err) {
+        //alert("Error al cargar la plantilla desde la URL");
+      }
+    }
+
     let art = localStorage.getItem('art')
     if(art != null) {
         loadArtMethod(JSON.parse(art))
     }
+
+
+    
   };
 </script>
 </body>
