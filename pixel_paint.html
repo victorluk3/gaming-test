@@ -510,6 +510,7 @@ function share_template(){
         }
 
         loadTemplateMethod(data);
+        localStorage.setItem('template', jsonStr)
         history.replaceState(null, "", window.location.pathname);
       } catch (err) {
         //alert("Error al cargar la plantilla desde la URL");
