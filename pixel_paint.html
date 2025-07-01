@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Art App</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: #ccc;
+    }
+
+    #toolbar {
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        background: #eee;
+        gap: 10px;
+      }
+      
+      .toolbar-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+    #canvasContainer {
+      flex: 1;
+      overflow: auto;
+    }
+
+    #canvas {
+      display: grid;
+      user-select: none;
+      background: #cccc;
+    }
+
+    .pixel {
+      box-sizing: border-box;
+      width: 100%;
+      height: 100%;
+    }
+
+    .grid-on .pixel {
+      border: 1px solid #ddd;
+    }
+
+    .grid-off .pixel-label {
+        display: none;
+      }
+  
+
+    .grid-off .pixel {
+      border: none;
+    }
+
+    .file-button {
+        display: inline-block;
+        padding: 6px 12px;
+        background-color: #ddd;
+        border: 1px solid #aaa;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        user-select: none;
+        transition: background-color 0.2s;
+      }
+      
+      .file-button:hover {
+        background-color: #ccc;
+      }
+      
+      .file-button input[type="file"] {
+        display: none;
+      }
+    #colorPalette {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+      }
+      
+      .color-swatch {
+        width: 15px;
+        height: 15px;
+        border: 2px solid #666;
+        cursor: pointer;
+        border-radius: 4px;
+        padding: 3px;
+        padding-left:5px;
+        color: black;
+        font-weight: bold;
+        text-shadow:
+        -1px -1px 0 white,
+        1px -1px 0 white,
+        -1px  1px 0 white,
+        1px  1px 0 white;
+      }
+
+      .pixel {
+        position: relative;
+      }
+      
+      .pixel-label {
+        position: absolute;
+        font-size: 10px;
+        color: black;
+        background: white;
+        padding: 0 2px;
+        border-radius: 2px;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        opacity: 0.7;
+      }
+
+  </style>
+</head>
+<body>
+    <div id="toolbar">
+        <div class="toolbar-row">
+          <!-- herramientas -->
+          <span id="sizeLabel">Tamaño: 32 × 32</span>
+          <input type="number" id="sizeInput" value="32" min="1" max="128" />
+          <button onclick="applySize()" class="file-button" title="Nuevo">➕</button>
+          <label class="file-button">🧩 Plantilla
+            <input type="file" id="templateFile" onchange="loadTemplate(event)" hidden />
+          </label>
+
+          
+          <label class="file-button" title="Carga tus avances">📂
+            <input type="file" id="loadFile" onchange="loadArt(event)" hidden />
+          </label>
+          <button onclick="saveArt()" class="file-button" title="Guarda tus avances">💾</button>
+          <button onclick="exportAsPNG()" class="file-button" title="Guardalo como imagen!">📤 🖼️</button>
+          <button onclick="validateTemplate()" class="file-button">🧹 Validar</button>
+          <button onclick="zoomIn()" class="file-button">🔍+</button>
+          <button onclick="zoomOut()" class="file-button">🔍-</button>
+          <label for="gridToggle">
+            <input type="checkbox" id="gridToggle" checked onchange="toggleGrid()" />
+            Grid
+          </label>
+
+        </div>
+      
+        <div class="toolbar-row">
+            <input type="color" id="colorPicker" value="#000000" />
+            <button onclick="setTool('pencil')" class="file-button">🖌️</button>
+            <button onclick="setTool('bucket')" class="file-button">💧 </button>
+            <button onclick="setTool('eraser')" class="file-button">🧽</button>
+          <!-- paleta de colores en segunda fila -->
+          <div id="colorPalette">
+            <span class="color-swatch" style="background:#000000;" data-color="#000000">1</span>
+            <span class="color-swatch" style="background:#ffffff;" data-color="#ffffff">2</span>
+            <span class="color-swatch" style="background:#ff0000;" data-color="#ff0000">3</span>
+            <span class="color-swatch" style="background:#00ff00;" data-color="#00ff00">4</span>
+            <span class="color-swatch" style="background:#0000ff;" data-color="#0000ff">5</span>
+            <span class="color-swatch" style="background:#ffff00;" data-color="#ffff00">6</span>
+            <span class="color-swatch" style="background:#00ffff;" data-color="#00ffff">7</span>
+            <span class="color-swatch" style="background:#ff00ff;" data-color="#ff00ff">8</span>
+          </div>
+        </div>
+      </div>
+
+  <div id="canvasContainer">
+    <div id="canvas" class="grid-on"></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const colorPicker = document.getElementById("colorPicker");
+    const sizeLabel = document.getElementById("sizeLabel");
+    const sizeInput = document.getElementById("sizeInput");
+    const gridToggle = document.getElementById("gridToggle");
+
+    let currentTool = "pencil";
+    let size = 32;
+    let drawing = false;
+    let zoom = 20;
+
+    function setTool(tool) {
+      currentTool = tool;
+    }
+
+    function updateSizeLabel() {
+      sizeLabel.textContent = `Tamaño: ${size} × ${size}`;
+    }
+
+    function createGrid() {
+      canvas.innerHTML = "";
+      canvas.style.gridTemplateColumns = `repeat(${size}, ${zoom}px)`;
+      canvas.style.gridTemplateRows = `repeat(${size}, ${zoom}px)`;
+      for (let i = 0; i < size * size; i++) {
+        const pixel = document.createElement("div");
+        pixel.classList.add("pixel");
+        pixel.dataset.index = i;
+        pixel.style.backgroundColor = "#ffffff";
+        pixel.addEventListener("mousedown", draw);
+        pixel.addEventListener("mouseover", (e) => {
+          if (drawing) draw(e);
+        });
+        canvas.appendChild(pixel);
+      }
+      updateSizeLabel();
+    }
+
+    function draw(e) {
+        const pixel = e.target;
+      
+        if (currentTool === "pencil") {
+          pixel.style.backgroundColor = colorPicker.value;
+          //removePixelLabel(pixel);
+        } else if (currentTool === "eraser") {
+          pixel.style.backgroundColor = "#ffffff";
+          //removePixelLabel(pixel);
+        } else if (currentTool === "bucket") {
+          const targetLabel = pixel.querySelector(".pixel-label");
+          if (targetLabel) {
+            const targetValue = targetLabel.innerText;
+            fillFromPixel(pixel, targetValue, colorPicker.value);
+          }
+        }
+      }
+
+    function zoomIn() {
+      zoom = Math.min(zoom + 5, 60);
+      updateZoom();
+    }
+
+    function zoomOut() {
+      zoom = Math.max(5, zoom - 5);
+      updateZoom();
+    }
+
+    function updateZoom() {
+      canvas.style.gridTemplateColumns = `repeat(${size}, ${zoom}px)`;
+      canvas.style.gridTemplateRows = `repeat(${size}, ${zoom}px)`;
+    }
+
+    function saveArt() {
+      const pixels = [...canvas.children].map(p => p.style.backgroundColor);
+      const data = JSON.stringify({ size, pixels });
+      const blob = new Blob([data], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "pixel-art.json";
+      localStorage.setItem('art', data)
+      a.click();
+    }
+
+    function loadArt(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const loaded = JSON.parse(e.target.result);
+        //size = loaded.size || 32;
+        //sizeInput.value = size;
+        //createGrid();
+        loadArtMethod(loaded);
+      };
+      reader.readAsText(file);
+    }
+
+    function loadArtMethod(data) {
+        [...canvas.children].forEach((p, i) => {
+            p.style.backgroundColor = data.pixels[i] || "#ffffff";
+          });
+    }
+
+    function applySize() {
+
+      let art = localStorage.getItem('art')
+      let template = localStorage.getItem('template')
+
+      if(art != null && template != null){
+        if(!confirm('tienes actualmente guardado un template, quieres borrarlo para empezar un proyecto nuevo?')){
+            
+            return
+        } else {
+            localStorage.clear()
+        }
+
+      }
+
+      const newSize = parseInt(sizeInput.value);
+      if (!isNaN(newSize) && newSize > 0 && newSize <= 128) {
+        size = newSize;
+        createGrid();
+      }
+    }
+
+    function toggleGrid() {
+      if (gridToggle.checked) {
+        canvas.classList.add("grid-on");
+        canvas.classList.remove("grid-off");
+        
+      } else {
+        canvas.classList.add("grid-off");
+        canvas.classList.remove("grid-on");
+      }
+    }
+
+    function exportAsPNG() {
+        const canvasEl = document.createElement("canvas");
+        canvasEl.width = size;
+        canvasEl.height = size;
+      
+        const ctx = canvasEl.getContext("2d");
+      
+        const pixels = [...canvas.children];
+        pixels.forEach((pixel, index) => {
+          const x = index % size;
+          const y = Math.floor(index / size);
+          const color = pixel.style.backgroundColor || "#ffffff";
+      
+          // Convertir color CSS a RGB
+          ctx.fillStyle = color;
+          ctx.fillRect(x, y, 1, 1); // 1x1 píxel
+        });
+      
+        // Escalar si quieres un PNG más grande (por ejemplo 512x512)
+        const newSize = parseInt(sizeInput.value);
+
+        const exportSize = newSize * 2;
+        const exportCanvas = document.createElement("canvas");
+        exportCanvas.width = exportSize;
+        exportCanvas.height = exportSize;
+        const exportCtx = exportCanvas.getContext("2d");
+        exportCtx.imageSmoothingEnabled = false;
+        exportCtx.drawImage(canvasEl, 0, 0, exportSize, exportSize);
+      
+        // Descargar
+        const link = document.createElement("a");
+        link.download = "pixel-art.png";
+        link.href = exportCanvas.toDataURL("image/png");
+        link.click();
+      }
+
+    document.body.addEventListener("mousedown", () => drawing = true);
+    document.body.addEventListener("mouseup", () => drawing = false);
+
+    createGrid(); // Inicializar
+
+    document.querySelectorAll(".color-swatch").forEach(swatch => {
+        swatch.addEventListener("click", () => {
+          const color = swatch.dataset.color;
+          colorPicker.value = color;
+        });
+      });
+
+    function loadTemplate(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const data = JSON.parse(e.target.result);
+        if (!data.pallete || !data.template) {
+        alert("Formato inválido de plantilla");
+        return;
+        }
+
+        localStorage.setItem('template', JSON.stringify(data))
+        loadTemplateMethod(data)
+    };
+    
+    reader.readAsText(file);
+    }
+
+    function loadTemplateMethod(data){
+            
+          // 1. Aplicar la nueva paleta
+          const paletteContainer = document.getElementById("colorPalette");
+          paletteContainer.innerHTML = ""; // limpiar
+      
+          data.pallete.forEach(entry => {
+            const swatch = document.createElement("span");
+            swatch.className = "color-swatch";
+            swatch.style.background = entry.value;
+            swatch.dataset.color = entry.value;
+            swatch.title = `#${entry.text}`;
+            swatch.innerHTML = entry.text
+            swatch.addEventListener("click", () => {
+              colorPicker.value = entry.value;
+            });
+            paletteContainer.appendChild(swatch);
+          });
+      
+          // 2. Ajustar el tamaño del grid
+          size = data.template.length;
+          sizeInput.value = size;
+          createGrid();
+      
+          // 3. Pintar los números encima de cada pixel
+          [...canvas.children].forEach((pixel, index) => {
+            const x = index % size;
+            const y = Math.floor(index / size);
+      
+            const num = data.template[y]?.[x];
+      
+            if (num !== undefined) {
+              const label = document.createElement("div");
+              label.className = "pixel-label";
+              label.innerText = num;
+              pixel.appendChild(label);
+            }
+          });
+    }
+
+      function removePixelLabel(pixel) {
+        const label = pixel.querySelector(".pixel-label");
+        if (label) pixel.removeChild(label);
+      }
+
+      function fillFromPixel(startPixel, targetValue, fillColor) {
+        const visited = new Set();
+        const queue = [startPixel];
+      
+        while (queue.length > 0) {
+          const pixel = queue.shift();
+          if (!pixel || visited.has(pixel)) continue;
+      
+          const label = pixel.querySelector(".pixel-label");
+          if (!label || label.innerText !== targetValue) continue;
+      
+          // Pintar pero NO eliminar el número
+          pixel.style.backgroundColor = fillColor;
+          visited.add(pixel);
+      
+          const index = parseInt(pixel.dataset.index);
+          const neighbors = [
+            canvas.children[index - 1],        // izquierda
+            canvas.children[index + 1],        // derecha
+            canvas.children[index - size],     // arriba
+            canvas.children[index + size]      // abajo
+          ];
+      
+          neighbors.forEach(n => {
+            if (n && !visited.has(n)) queue.push(n);
+          });
+        }
+      }
+
+      function validateTemplate() {
+        // Crear un mapa de número → color desde la paleta
+        const swatches = document.querySelectorAll(".color-swatch");
+        const paletteMap = {};
+        swatches.forEach(swatch => {
+          const number = swatch.title?.replace("#", "");
+          const color = swatch.dataset.color?.toLowerCase();
+          if (number !== undefined && color) {
+            paletteMap[number] = color;
+          }
+        });
+      
+        // Recorrer cada píxel
+        [...canvas.children].forEach(pixel => {
+          const label = pixel.querySelector(".pixel-label");
+          if (label) {
+            const number = label.innerText;
+            const expectedColor = paletteMap[number];
+            const currentColor = rgbToHex(pixel.style.backgroundColor).toLowerCase();
+      
+            if (expectedColor && currentColor !== expectedColor) {
+              pixel.style.backgroundColor = "#ffffff"; // resetear
+            }
+          }
+        });
+      }
+
+// Utilidad para convertir "rgb(255,0,0)" → "#ff0000"
+function rgbToHex(rgb) {
+    if (!rgb) return "#ffffff";
+    const match = rgb.match(/\d+/g);
+    if (!match || match.length < 3) return "#ffffff";
+    return "#" + match.slice(0, 3).map(c => {
+      const hex = parseInt(c).toString(16);
+      return hex.length === 1 ? "0" + hex : hex;
+    }).join("");
+  }
+  
+  window.onload = function() {
+    let template = localStorage.getItem('template')
+    if(template != null){
+        loadTemplateMethod(JSON.parse(template))
+    }
+    let art = localStorage.getItem('art')
+    if(art != null) {
+        loadArtMethod(JSON.parse(art))
+    }
+  };
+</script>
+</body>
+</html>
