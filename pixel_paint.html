@@ -62,7 +62,7 @@
 
     .file-button {
         display: inline-block;
-        padding: 6px 12px;
+        padding: 3px 6px;
         background-color: #ddd;
         border: 1px solid #aaa;
         border-radius: 4px;
@@ -129,13 +129,18 @@
           <input type="number" id="sizeInput" value="32" min="1" max="128" />
           <button onclick="applySize()" class="file-button" title="Nuevo">➕</button>
           <label class="file-button">🧩 Plantilla
-            <input type="file" id="templateFile" onchange="loadTemplate(event)" hidden />
+            <input type="file" id="templateFile" onchange="loadTemplate(event)" accept="application/json" hidden />
           </label>
           <button onclick="share_template()"  class="file-button" title="Compartir plantilla actual">🔗</button>
-          
+          <button onclick="generateTemplateFromCanvas()" class="file-button">🔗 Compartir lienzo</button>
           <!-- <label class="file-button" title="Carga tus avances">📂
             <input type="file" id="loadFile" onchange="loadArt(event)" hidden />
           </label> -->
+
+          
+
+        </div>
+        <div class="toolbar-row">
           <button onclick="saveArt()" class="file-button" title="Guarda tus avances">💾</button>
           <button onclick="exportAsPNG()" class="file-button" title="Guardalo como imagen!">📤 🖼️</button>
           <button onclick="validateTemplate()" class="file-button">🧹 Validar</button>
@@ -145,7 +150,6 @@
             <input type="checkbox" id="gridToggle" checked onchange="toggleGrid()" />
             Grid
           </label>
-
         </div>
       
         <div class="toolbar-row">
@@ -192,6 +196,8 @@
     }
 
     function createGrid() {
+
+
       canvas.innerHTML = "";
       canvas.style.gridTemplateColumns = `repeat(${size}, ${zoom}px)`;
       canvas.style.gridTemplateRows = `repeat(${size}, ${zoom}px)`;
@@ -279,7 +285,7 @@
       let art = localStorage.getItem('art')
       let template = localStorage.getItem('template')
 
-      if(art != null && template != null){
+      if(art != null || template != null){
         if(!confirm('tienes actualmente guardado un template, quieres borrarlo para empezar un proyecto nuevo?')){
             
             return
@@ -288,6 +294,35 @@
         }
 
       }
+
+        let data = {
+          pallete: [
+            {text: '1', value: '#000000' },
+            {text: '2', value: '#ffffff' },
+            {text: '3', value: '#ff0000' },
+            {text: '4', value: '#00ff00' },
+            {text: '5', value: '#ffff00' },
+            {text: '6', value: '#00ffff' },
+            {text: '7', value: '#ff00ff' }
+          ]
+        }
+
+      const paletteContainer = document.getElementById("colorPalette");
+      paletteContainer.innerHTML = ""; // limpiar
+
+
+      data.pallete.forEach(entry => {
+        const swatch = document.createElement("span");
+        swatch.className = "color-swatch";
+        swatch.style.background = entry.value;
+        swatch.dataset.color = entry.value;
+        swatch.title = `#${entry.text}`;
+        swatch.innerHTML = entry.text
+        swatch.addEventListener("click", () => {
+          colorPicker.value = entry.value;
+        });
+        paletteContainer.appendChild(swatch);
+      });
 
       const newSize = parseInt(sizeInput.value);
       if (!isNaN(newSize) && newSize > 0 && newSize <= 128) {
@@ -488,9 +523,74 @@ function rgbToHex(rgb) {
 
 function share_template(){
   let template = localStorage.getItem('template')
+  if(template == null) {
+    alert("No tienes una plantilla actualmente")
+    return
+  }
+
   const compressed = LZString.compressToEncodedURIComponent(template);
   const shareUrl = `${window.location.origin}${window.location.pathname}?tpl=${compressed}`;
   console.log(shareUrl);
+
+
+    navigator.clipboard.writeText(shareUrl).then(() => {
+    alert("✅ Enlace de plantilla copiado al portapapeles");
+  }).catch(() => {
+    prompt("Copia este enlace:", shareUrl);
+  });
+}
+
+function generateTemplateFromCanvas() {
+  const pixels = [...canvas.children];
+  const usedColors = new Map();
+  const template = [];
+
+  let colorIndex = 0;
+
+  for (let y = 0; y < size; y++) {
+    const row = [];
+    for (let x = 0; x < size; x++) {
+      const i = y * size + x;
+      const pixel = pixels[i];
+      let color = pixel.style.backgroundColor || "rgb(255,255,255)";
+
+      // Convertir a hex
+      color = rgbToHex(color).toUpperCase();
+
+      if (!usedColors.has(color)) {
+        usedColors.set(color, colorIndex++);
+      }
+
+      row.push(usedColors.get(color));
+    }
+    template.push(row);
+  }
+
+  if(Array.from(usedColors.entries()).length == 1) {
+    alert("No tienes nada que compartir :(")
+    return
+  }
+
+  // Crear paleta
+  const palette = Array.from(usedColors.entries()).map(([color, index]) => ({
+    text: index,
+    value: color
+  }));
+
+  const json = {
+    pallete: palette,
+    template: template
+  };
+
+  const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(json));
+  const shareUrl = `${window.location.origin}${window.location.pathname}?tpl=${compressed}`;
+
+  // Copiar al portapapeles
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    alert("✅ Enlace de plantilla copiado al portapapeles");
+  }).catch(() => {
+    prompt("Copia este enlace:", shareUrl);
+  });
 }
   
   window.onload = function() {
