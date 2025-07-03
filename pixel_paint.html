@@ -14,6 +14,10 @@
       height: 100vh;
       background: #eee;
     }
+    .selected {
+      padding:5px !important;
+      box-shadow: 0 2px 2px 0 rgba(50, 134, 243, 0.5), 0 6px 20px 0 rgba(85, 126, 240, 0.5);
+    }
     #toolbar {
       padding: 10px;
       background: #ddd;
@@ -33,6 +37,10 @@
       gap: 5px;
       flex-wrap: wrap;
     }
+    .color-active {
+  outline: 3px solid #333;
+  transform: scale(1.2);
+}
     .swatch {
       width: 20px;
       height: 20px;
@@ -131,10 +139,10 @@
           Mostrar cuadrícula
         </label>
         </div>
-        <div class="toolbar-row">
+        <div class="toolbar-row" style="margin-top:3px">
             <input type="color" id="colorPicker" value="#000000" />
-            <button onclick="setTool('pencil')" class="file-button" class="file-button">🖌️</button>
-            <button onclick="setTool('bucket')" class="file-button" class="file-button">💧 </button>
+            <button onclick="setTool('pencil')" id="pencil" class="file-button selected" >🖌️</button>
+            <button onclick="setTool('bucket')" id="bucket" class="file-button" >💧 </button>
             <!-- <button onclick="setTool('eraser')" class="file-button">🧽</button> -->
         </div>
         <div class="toolbar-row" style="margin-top: 10px;">
@@ -162,6 +170,12 @@
 
     function setTool(tool){
       currentTool = tool
+      document.querySelector('#pencil').classList.remove('selected')
+      document.querySelector('#bucket').classList.remove('selected')
+
+      document.querySelector('#'+tool).classList.add('selected')
+
+
     }
 
     const canvas = document.getElementById('pixelCanvas');
@@ -181,6 +195,20 @@
     let currentPalette = [];
     currentPalette = Object.assign([], defPallete)
 
+function setActiveColor(color) {
+  colorPicker.value = color;
+
+  // Quitar highlight de todos
+  document.querySelectorAll('.swatch').forEach(el => {
+    el.classList.remove("color-active");
+  });
+
+  // Resaltar el actual
+  const selected = [...document.querySelectorAll('.swatch')].find(
+    el => normalizeColor(el.dataset.color) === normalizeColor(color)
+  );
+  if (selected) selected.classList.add("color-active");
+}
 
     function updatePalette(){
       paletteContainer.innerHTML = '';
@@ -189,9 +217,15 @@
         const swatch = document.createElement('div');
         swatch.className = 'color-swatch';
         swatch.style.background = p.value;
+        swatch.dataset.color = p.value;
         swatch.innerText = p.text;
         swatch.title = p.value;
-        swatch.onclick = () => colorPicker.value = p.value;
+        swatch.onclick = () => { 
+
+          document.querySelectorAll('.color-swatch').forEach( f => f.classList.remove('selected'))
+          colorPicker.value = p.value;
+          swatch.classList.add('selected')
+        }
         paletteContainer.appendChild(swatch);
       });
     }
@@ -663,12 +697,41 @@ document.addEventListener("DOMContentLoaded", () => {
         currentPalette = data.palette;
         updatePalette()
         drawCanvas();
+        cambiarColorEnPaleta(1);
       }
     } catch (err) {
       console.error("Error cargando datos guardados:", err);
     }
   
 });
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT") return; // evita conflicto con inputs
+
+  console.log('key down')
+  if (e.key === "1") {
+    cambiarColorEnPaleta(-1); // retroceder
+  } else if (e.key === "2") {
+    cambiarColorEnPaleta(1); // avanzar
+  }
+});
+
+function cambiarColorEnPaleta(direccion) {
+  const swatches = [...document.querySelectorAll(".color-swatch")];
+  const actual = normalizeColor(colorPicker.value);
+  const index = swatches.findIndex(s => normalizeColor(s.dataset.color) === actual);
+  if (index === -1) {
+    setActiveColor(swatches[0].dataset.color)
+    swatches[0].classList.add('selected')
+    return
+  };
+
+  let nuevo = (index + direccion + swatches.length) % swatches.length;
+  const nuevoColor = swatches[nuevo].dataset.color;
+  swatches.forEach((f)=> f.classList.remove('selected'))
+  swatches[nuevo].classList.add('selected')
+  setActiveColor(nuevoColor);
+}
 
 
 
