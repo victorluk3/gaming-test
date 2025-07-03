@@ -378,6 +378,60 @@ function saveArtToLocal() {
     drawCanvas();
   }
 
+function migrarDesdeLocalStorageAntiguo() {
+  const plantillaRaw = localStorage.getItem("template");
+  const arteRaw = localStorage.getItem("art");
+
+  if (!plantillaRaw && !arteRaw) return false;
+
+  try {
+    if (plantillaRaw) {
+      const plantilla = JSON.parse(plantillaRaw);
+      size = plantilla.template.length;
+      labels = plantilla.template;
+      currentPalette = plantilla.pallete;
+
+      // reconstruir paleta visual
+      paletteContainer.innerHTML = '';
+      currentPalette.forEach(p => {
+        const swatch = document.createElement('div');
+        swatch.className = 'swatch';
+        swatch.style.background = p.value;
+        swatch.innerText = p.text;
+        swatch.title = p.value;
+        swatch.onclick = () => colorPicker.value = p.value;
+        paletteContainer.appendChild(swatch);
+      });
+    }
+
+    if (arteRaw) {
+      const arte = JSON.parse(arteRaw);
+      size = arte.size || size;
+      pixels = arte.pixels || Array.from({ length: size }, () => Array(size).fill("#ffffff"));
+    } else {
+      // si no hay arte, crear lienzo en blanco
+      pixels = Array.from({ length: size }, () => Array(size).fill("#ffffff"));
+    }
+
+    // si no hay labels porque no se cargó template, se generan vacíos
+    if (!labels) {
+      labels = Array.from({ length: size }, () => Array(size).fill(null));
+    }
+
+    // guardar en el nuevo formato
+    saveArtToLocal();
+    drawCanvas();
+    localStorage.removeItem("template");
+    localStorage.removeItem("art");
+    showNotification("✅ Datos antiguos restaurados desde localStorage");
+
+    return true;
+  } catch (err) {
+    console.error("Error al migrar desde localStorage viejo:", err);
+    return false;
+  }
+}
+
 function generateTemplateFromCanvas() {
   const usedColors = new Map();
   const template = [];
