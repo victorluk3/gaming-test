@@ -249,6 +249,28 @@
       
     }
 
+function drawPixel(x, y) {
+  const color = pixels[y][x];
+  const label = labels[y][x];
+  const showGrid = document.getElementById("toggleGrid")?.checked ?? true;
+  const showLabels = document.getElementById("toggleLabels")?.checked ?? true;
+
+  ctx.fillStyle = color;
+  ctx.fillRect(x * zoom, y * zoom, zoom, zoom);
+
+  if (showGrid) {
+    ctx.strokeStyle = "#ccc";
+    ctx.strokeRect(x * zoom, y * zoom, zoom, zoom);
+  }
+
+  if (label !== null && showLabels) {
+    ctx.fillStyle = "#000";
+    ctx.font = `${Math.max(zoom / 2.5, 8)}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, x * zoom + zoom / 2, y * zoom + zoom / 2);
+  }
+}
 
 function validateTemplate() {
   if (!currentPalette || currentPalette.length === 0) {
@@ -302,26 +324,78 @@ function showNotification(message, duration = 3000) {
   }, duration);
 }
 
-    function floodFillByLabel(x, y, targetLabel, fillColor) {
-  const visited = new Set();
-  const queue = [[x, y]];
-  const key = (x, y) => `${x},${y}`;
+function floodFillByLabel(x, y, targetLabel, fillColor) {
+  if (labels[y][x] !== targetLabel) return;
 
-  while (queue.length > 0) {
-    const [cx, cy] = queue.shift();
+  const visited = Array.from({ length: size }, () => new Uint8Array(size));
+  const toDraw = [];
+
+  const stack = [[x, y]];
+
+  while (stack.length > 0) {
+    const [cx, cy] = stack.pop();
+
     if (cx < 0 || cy < 0 || cx >= size || cy >= size) continue;
-    if (visited.has(key(cx, cy))) continue;
+    if (visited[cy][cx]) continue;
     if (labels[cy][cx] !== targetLabel) continue;
 
+    visited[cy][cx] = 1;
     pixels[cy][cx] = fillColor;
-    visited.add(key(cx, cy));
+    toDraw.push([cx, cy]);
 
-    queue.push([cx + 1, cy]);
-    queue.push([cx - 1, cy]);
-    queue.push([cx, cy + 1]);
-    queue.push([cx, cy - 1]);
+    stack.push([cx + 1, cy]);
+    stack.push([cx - 1, cy]);
+    stack.push([cx, cy + 1]);
+    stack.push([cx, cy - 1]);
   }
+
+  // Ahora sí, dibujamos todo al final
+  toDraw.forEach(([dx, dy]) => drawPixel(dx, dy));
 }
+
+// function floodFillByLabel(startX, startY, targetLabel, fillColor) {
+//   // Verificar que la celda inicial tenga el targetLabel
+//   if (labels[startY][startX] !== targetLabel) return;
+  
+//   const visited = new Set();
+//   const queue = [[startX, startY]];
+//   const key = (x, y) => `${x},${y}`;
+  
+//   while (queue.length > 0) {
+//     const [x, y] = queue.pop();
+//     let left = x, right = x;
+    
+//     // Expandir a la izquierda
+//     while (left >= 0 && labels[y][left] === targetLabel && !visited.has(key(left, y))) {
+//       left--;
+//     }
+//     left++; // El último válido
+
+//     // Expandir a la derecha
+//     while (right < size && labels[y][right] === targetLabel && !visited.has(key(right, y))) {
+//       right++;
+//     }
+//     right--; // El último válido
+
+//     // Rellenar la línea horizontal y marcar como visitada
+//     for (let i = left; i <= right; i++) {
+//       pixels[y][i] = fillColor;
+//       visited.add(key(i, y));
+      
+//       // Verificar la línea de arriba
+//       if (y > 0 && labels[y - 1][i] === targetLabel && !visited.has(key(i, y - 1))) {
+//         queue.push([i, y - 1]);
+//       }
+//       // Verificar la línea de abajo
+//       if (y < size - 1 && labels[y + 1][i] === targetLabel && !visited.has(key(i, y + 1))) {
+//         queue.push([i, y + 1]);
+//       }
+//     }
+//   }
+//   // Una vez terminado, redibuja el canvas de una sola vez.
+//   drawCanvas();
+// }
+
 
     function bucketFillByLabel(targetLabel, fillColor) {
   for (let y = 0; y < size; y++) {
@@ -378,60 +452,6 @@ function saveArtToLocal() {
     drawCanvas();
   }
 
-function migrarDesdeLocalStorageAntiguo() {
-  const plantillaRaw = localStorage.getItem("template");
-  const arteRaw = localStorage.getItem("art");
-
-  if (!plantillaRaw && !arteRaw) return false;
-
-  try {
-    if (plantillaRaw) {
-      const plantilla = JSON.parse(plantillaRaw);
-      size = plantilla.template.length;
-      labels = plantilla.template;
-      currentPalette = plantilla.pallete;
-
-      // reconstruir paleta visual
-      paletteContainer.innerHTML = '';
-      currentPalette.forEach(p => {
-        const swatch = document.createElement('div');
-        swatch.className = 'swatch';
-        swatch.style.background = p.value;
-        swatch.innerText = p.text;
-        swatch.title = p.value;
-        swatch.onclick = () => colorPicker.value = p.value;
-        paletteContainer.appendChild(swatch);
-      });
-    }
-
-    if (arteRaw) {
-      const arte = JSON.parse(arteRaw);
-      size = arte.size || size;
-      pixels = arte.pixels || Array.from({ length: size }, () => Array(size).fill("#ffffff"));
-    } else {
-      // si no hay arte, crear lienzo en blanco
-      pixels = Array.from({ length: size }, () => Array(size).fill("#ffffff"));
-    }
-
-    // si no hay labels porque no se cargó template, se generan vacíos
-    if (!labels) {
-      labels = Array.from({ length: size }, () => Array(size).fill(null));
-    }
-
-    // guardar en el nuevo formato
-    saveArtToLocal();
-    drawCanvas();
-    localStorage.removeItem("template");
-    localStorage.removeItem("art");
-    showNotification("✅ Datos antiguos restaurados desde localStorage");
-
-    return true;
-  } catch (err) {
-    console.error("Error al migrar desde localStorage viejo:", err);
-    return false;
-  }
-}
-
 function generateTemplateFromCanvas() {
   const usedColors = new Map();
   const template = [];
@@ -478,8 +498,10 @@ function generateTemplateFromCanvas() {
     prompt("Copia este enlace:", shareUrl);
   });
 }
-    canvas.addEventListener('click', (e) => {
-      const rect = canvas.getBoundingClientRect();
+
+// let rect = canvas.getBoundingClientRect()
+canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect()
       const x = Math.floor((e.clientX - rect.left) / zoom);
       const y = Math.floor((e.clientY - rect.top) / zoom);
 
@@ -487,6 +509,8 @@ function generateTemplateFromCanvas() {
 
       if (currentTool === "pencil") {
         pixels[y][x] = colorPicker.value;
+        drawPixel(x,y)
+        return
       } else if (currentTool === "bucket") {
         const targetLabel = labels[y][x];
         if (targetLabel !== null) {
@@ -494,7 +518,6 @@ function generateTemplateFromCanvas() {
         }
       }
 
-      drawCanvas();
       saveArtToLocal()
     });
 
@@ -609,6 +632,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (data.size && data.pixels) {
         size = data.size;
+        document.getElementById('size').value = size
         pixels = data.pixels;
         labels = data.labels || Array.from({ length: size }, () => Array(size).fill(null));
         currentPalette = data.palette;
