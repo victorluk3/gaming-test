@@ -206,6 +206,15 @@
     let labels = Array.from({ length: size }, () => Array(size).fill(null));
 
     function newCanvas(){
+      let art = localStorage.getItem('pixelArtData')
+      if(art != null) {
+        if(!confirm('actualmente tienes un lienzo en proceso, quieres borrar todo?')){
+          return
+        }
+
+      }
+
+
       size = parseInt(document.getElementById('size').value);
       zoom = 20;
       pixels = Array.from({ length: size }, () => Array(size).fill('#ffffff'));
@@ -213,6 +222,9 @@
       localStorage.clear()
       currentPalette = Object.assign([], defPallete)
       drawCanvas()
+      setTimeout(()=>{
+        showNotification("Empezaste un nuevo lienzo!")
+      },500)
     }
 
     function drawCanvas() {
@@ -397,7 +409,7 @@ function floodFillByLabel(x, y, targetLabel, fillColor) {
 // }
 
 
-    function bucketFillByLabel(targetLabel, fillColor) {
+function bucketFillByLabel(targetLabel, fillColor) {
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       if (labels[y][x] === targetLabel) {
@@ -411,6 +423,7 @@ function floodFill(x, y, targetColor, fillColor) {
   const visited = new Set();
 
   const key = (x, y) => `${x},${y}`;
+  let toDraw =[]
 
   while (queue.length > 0) {
     const [cx, cy] = queue.shift();
@@ -419,6 +432,8 @@ function floodFill(x, y, targetColor, fillColor) {
     if (pixels[cy][cx] !== targetColor) continue;
 
     pixels[cy][cx] = fillColor;
+    toDraw.push({x: cx, y: cy})
+   
     visited.add(key(cx, cy));
 
     queue.push([cx + 1, cy]);
@@ -426,6 +441,12 @@ function floodFill(x, y, targetColor, fillColor) {
     queue.push([cx, cy + 1]);
     queue.push([cx, cy - 1]);
   }
+
+ 
+  for(var x of toDraw)
+    drawPixel(x.x,x.y);
+  
+     
 }
 
 function normalizeColor(color) {
@@ -435,6 +456,7 @@ function normalizeColor(color) {
 }
 
 function saveArtToLocal() {
+  console.log('save')
   const data = {
     size,
     pixels,
@@ -505,16 +527,19 @@ canvas.addEventListener('click', (e) => {
       const x = Math.floor((e.clientX - rect.left) / zoom);
       const y = Math.floor((e.clientY - rect.top) / zoom);
 
+      console.log('click')
       if (x < 0 || x >= size || y < 0 || y >= size) return;
 
       if (currentTool === "pencil") {
         pixels[y][x] = colorPicker.value;
         drawPixel(x,y)
-        return
       } else if (currentTool === "bucket") {
         const targetLabel = labels[y][x];
         if (targetLabel !== null) {
           floodFillByLabel(x, y, targetLabel, normalizeColor(colorPicker.value));
+        } else {
+          let target = pixels[y][x]
+          floodFill(x,y, target, colorPicker.value)
         }
       }
 
