@@ -1,64 +1,68 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
-  <title>Pixel Art App</title>
+  <title>Pixel Canvas</title>
   <style>
     body {
       margin: 0;
-      font-family: sans-serif;
       display: flex;
       flex-direction: column;
       height: 100vh;
-      background: #ccc;
+      background: #eee;
     }
-
     #toolbar {
-        display: flex;
-        flex-direction: column;
-        padding: 10px;
-        background: #eee;
-        gap: 10px;
-      }
-      
-      .toolbar-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        align-items: center;
-      }
-
+      padding: 10px;
+      background: #ddd;
+    }
     #canvasContainer {
       flex: 1;
       overflow: auto;
     }
-
-    #canvas {
-      display: grid;
-      user-select: none;
-      background: #cccc;
+    canvas {
+      background: white;
+      image-rendering: pixelated;
+      cursor: crosshair;
+    }
+    #palette {
+      margin-top: 10px;
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .swatch {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      color: black;
+      text-shadow: 1px 1px white, -1px -1px white;
+      cursor: pointer;
     }
 
-    .pixel {
-      box-sizing: border-box;
-      width: 100%;
-      height: 100%;
-    }
-
-    .grid-on .pixel {
-      border: 1px solid #ddd;
-    }
-
-    .grid-off .pixel-label {
-        display: none;
+      .color-swatch {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #666;
+        cursor: pointer;
+        border-radius: 4px;
+        padding: 3px;
+        color: black;
+        text-align: center;
+        font-weight: bold;
+        text-shadow:
+        -1px -1px 0 white,
+        1px -1px 0 white,
+        -1px  1px 0 white,
+        1px  1px 0 white;
       }
-  
-
-    .grid-off .pixel {
-      border: none;
-    }
 
     .file-button {
         display: inline-block;
@@ -79,86 +83,63 @@
       .file-button input[type="file"] {
         display: none;
       }
-    #colorPalette {
-        display: flex;
-        gap: 5px;
-        align-items: center;
-      }
-      
-      .color-swatch {
-        width: 15px;
-        height: 15px;
-        border: 2px solid #666;
-        cursor: pointer;
-        border-radius: 4px;
-        padding: 3px;
-        padding-left:5px;
-        color: black;
-        font-weight: bold;
-        text-shadow:
-        -1px -1px 0 white,
-        1px -1px 0 white,
-        -1px  1px 0 white,
-        1px  1px 0 white;
-      }
+      #notificationContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-      .pixel {
-        position: relative;
-      }
-      
-      .pixel-label {
-        position: absolute;
-        font-size: 10px;
-        color: black;
-        background: white;
-        padding: 0 2px;
-        border-radius: 2px;
-        top: 0;
-        left: 0;
-        pointer-events: none;
-        opacity: 0.7;
-      }
-
+.notification {
+  background: #333;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  opacity: 0.95;
+  transition: opacity 0.3s ease;
+}
   </style>
 </head>
 <body>
-    <div id="toolbar">
-        <div class="toolbar-row">
-          <!-- herramientas -->
-          <span id="sizeLabel">Tamaño: 32 × 32</span>
-          <input type="number" id="sizeInput" value="32" min="1" max="128" />
-          <button onclick="applySize()" class="file-button" title="Nuevo">➕</button>
+  <div id="toolbar">
+      <div class="toolbar-row">
+        Lienzo: <input type="text" id="size" value="32" style="width:50px">
+        <button onclick="newCanvas()" class="file-button" title="Nuevo">➕</button>
           <label class="file-button">🧩 Plantilla
-            <input type="file" id="templateFile" onchange="loadTemplate(event)" accept="application/json" hidden />
+            <input type="file" id="templateInput"  accept="application/json" hidden />
           </label>
-          <button onclick="share_template()"  class="file-button" title="Compartir plantilla actual">🔗</button>
-          <button onclick="generateTemplateFromCanvas()" class="file-button">🔗 Compartir lienzo</button>
-          <!-- <label class="file-button" title="Carga tus avances">📂
-            <input type="file" id="loadFile" onchange="loadArt(event)" hidden />
-          </label> -->
 
-          
+        <button onclick="generateTemplateFromCanvas()" class="file-button">🔗 Compartir lienzo</button>
+      </div>
 
-        </div>
+
         <div class="toolbar-row">
-          <button onclick="saveArt()" class="file-button" title="Guarda tus avances">💾</button>
-          <button onclick="exportAsPNG()" class="file-button" title="Guardalo como imagen!">📤 🖼️</button>
-          <button onclick="validateTemplate()" class="file-button">🧹 Validar</button>
+          <button onclick="validateTemplate()">🧹 Validar</button>
           <button onclick="zoomIn()" class="file-button">🔍+</button>
           <button onclick="zoomOut()" class="file-button">🔍-</button>
-          <label for="gridToggle">
-            <input type="checkbox" id="gridToggle" checked onchange="toggleGrid()" />
-            Grid
-          </label>
+          <label>
+          <input type="checkbox" id="toggleLabels" checked onchange="drawCanvas()" />
+          Mostrar números
+        </label>
+        <label>
+          <input type="checkbox" id="toggleGrid" checked onchange="drawCanvas()" />
+          Mostrar cuadrícula
+        </label>
         </div>
-      
         <div class="toolbar-row">
             <input type="color" id="colorPicker" value="#000000" />
-            <button onclick="setTool('pencil')" class="file-button">🖌️</button>
-            <button onclick="setTool('bucket')" class="file-button">💧 </button>
-            <button onclick="setTool('eraser')" class="file-button">🧽</button>
+            <button onclick="setTool('pencil')" class="file-button" class="file-button">🖌️</button>
+            <button onclick="setTool('bucket')" class="file-button" class="file-button">💧 </button>
+            <!-- <button onclick="setTool('eraser')" class="file-button">🧽</button> -->
+        </div>
+        <div class="toolbar-row" style="margin-top: 10px;">
           <!-- paleta de colores en segunda fila -->
-          <div id="colorPalette">
+          <div id="palette">
             <span class="color-swatch" style="background:#000000;" data-color="#000000">1</span>
             <span class="color-swatch" style="background:#ffffff;" data-color="#ffffff">2</span>
             <span class="color-swatch" style="background:#ff0000;" data-color="#ff0000">3</span>
@@ -169,413 +150,244 @@
             <span class="color-swatch" style="background:#ff00ff;" data-color="#ff00ff">8</span>
           </div>
         </div>
-      </div>
-
+  </div>
   <div id="canvasContainer">
-    <div id="canvas" class="grid-on"></div>
+    <canvas id="pixelCanvas" width="32" height="32"></canvas>
   </div>
 
   <script>
-    const canvas = document.getElementById("canvas");
-    const colorPicker = document.getElementById("colorPicker");
-    const sizeLabel = document.getElementById("sizeLabel");
-    const sizeInput = document.getElementById("sizeInput");
-    const gridToggle = document.getElementById("gridToggle");
 
-    let currentTool = "pencil";
-    let size = 32;
-    let drawing = false;
-    let zoom = 20;
+    let currentTool = "pencil"; // "pencil" o "bucket"
 
-    function setTool(tool) {
-      currentTool = tool;
+
+    function setTool(tool){
+      currentTool = tool
     }
 
-    function updateSizeLabel() {
-      sizeLabel.textContent = `Tamaño: ${size} × ${size}`;
-    }
-
-    function createGrid() {
-
-
-      canvas.innerHTML = "";
-      canvas.style.gridTemplateColumns = `repeat(${size}, ${zoom}px)`;
-      canvas.style.gridTemplateRows = `repeat(${size}, ${zoom}px)`;
-      for (let i = 0; i < size * size; i++) {
-        const pixel = document.createElement("div");
-        pixel.classList.add("pixel");
-        pixel.dataset.index = i;
-        pixel.style.backgroundColor = "#ffffff";
-        pixel.addEventListener("mousedown", draw);
-        pixel.addEventListener("mouseover", (e) => {
-          if (drawing) draw(e);
-        });
-        canvas.appendChild(pixel);
-      }
-      updateSizeLabel();
-    }
-
-    function draw(e) {
-        const pixel = e.target;
-      
-        if (currentTool === "pencil") {
-          pixel.style.backgroundColor = colorPicker.value;
-          //removePixelLabel(pixel);
-        } else if (currentTool === "eraser") {
-          pixel.style.backgroundColor = "#ffffff";
-          //removePixelLabel(pixel);
-        } else if (currentTool === "bucket") {
-          const targetLabel = pixel.querySelector(".pixel-label");
-          if (targetLabel) {
-            const targetValue = targetLabel.innerText;
-            fillFromPixel(pixel, targetValue, colorPicker.value);
-          }
-        }
-      }
-
-    function zoomIn() {
-      zoom = Math.min(zoom + 3, 60);
-      updateZoom();
-      updateZoomLabel()
-    }
-
-    function updateZoomLabel(){
-       console.log('zoom', zoom)
-      if(zoom < 17) {
-        document.querySelectorAll('.pixel-label').forEach(f => f.style.fontSize = '8px')
-      }
-      if(zoom >= 17 && zoom < 20) {
-        document.querySelectorAll('.pixel-label').forEach(f => f.style.fontSize = '8px')
-      }
-      if(zoom > 23 && zoom < 29) {
-        document.querySelectorAll('.pixel-label').forEach(f => f.style.fontSize = '12px')
-      }
-      if(zoom > 29) {
-        document.querySelectorAll('.pixel-label').forEach(f => f.style.fontSize = '14px')
-      }
-    }
-
-    function zoomOut() {
-      zoom = Math.max(3, zoom - 3);
-      updateZoom();
-      updateZoomLabel()
-     
-
-    }
-
-    function updateZoom() {
-      canvas.style.gridTemplateColumns = `repeat(${size}, ${zoom}px)`;
-      canvas.style.gridTemplateRows = `repeat(${size}, ${zoom}px)`;
-    }
-
-    function saveArt() {
-      const pixels = [...canvas.children].map(p => p.style.backgroundColor);
-      const data = JSON.stringify({ size, pixels });
-      // const blob = new Blob([data], { type: "application/json" });
-      // const a = document.createElement("a");
-      // a.href = URL.createObjectURL(blob);
-      // a.download = "pixel-art.json";
-      localStorage.setItem('art', data)
-      // a.click();
-    }
-
-    function loadArt(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const loaded = JSON.parse(e.target.result);
-        //size = loaded.size || 32;
-        //sizeInput.value = size;
-        //createGrid();
-        loadArtMethod(loaded);
-      };
-      reader.readAsText(file);
-    }
-
-    function loadArtMethod(data) {
-        [...canvas.children].forEach((p, i) => {
-            p.style.backgroundColor = data.pixels[i] || "#ffffff";
-          });
-    }
-
-    function applySize() {
-
-      let art = localStorage.getItem('art')
-      let template = localStorage.getItem('template')
-
-      if(art != null || template != null){
-        if(!confirm('tienes actualmente guardado un template, quieres borrarlo para empezar un proyecto nuevo?')){
-            
-            return
-        } else {
-            localStorage.clear()
-        }
-
-      }
-
-        let data = {
-          pallete: [
-            {text: '1', value: '#000000' },
-            {text: '2', value: '#ffffff' },
-            {text: '3', value: '#ff0000' },
-            {text: '4', value: '#00ff00' },
-            {text: '5', value: '#ffff00' },
-            {text: '6', value: '#00ffff' },
-            {text: '7', value: '#ff00ff' }
-          ]
-        }
-
-      const paletteContainer = document.getElementById("colorPalette");
-      paletteContainer.innerHTML = ""; // limpiar
+    const canvas = document.getElementById('pixelCanvas');
+    const ctx = canvas.getContext('2d');
+    const colorPicker = document.getElementById('colorPicker');
+    const paletteContainer = document.getElementById('palette');
+    const defPallete = [
+        { text: 1, value: '#000000' },
+        { text: 2, value: '#FFFFFF' },
+        { text: 3, value: '#FF0000' },
+        { text: 4, value: '#00FF00' },
+        { text: 5, value: '#0000FF' },
+        { text: 6, value: '#FFFF00' },
+        { text: 7, value: '#00FFFF' },
+        { text: 8, value: '#FF00FF' }
+      ];
+    let currentPalette = [];
+    currentPalette = Object.assign([], defPallete)
 
 
-      data.pallete.forEach(entry => {
-        const swatch = document.createElement("span");
-        swatch.className = "color-swatch";
-        swatch.style.background = entry.value;
-        swatch.dataset.color = entry.value;
-        swatch.title = `#${entry.text}`;
-        swatch.innerHTML = entry.text
-        swatch.addEventListener("click", () => {
-          colorPicker.value = entry.value;
-        });
+    function updatePalette(){
+      paletteContainer.innerHTML = '';
+      console.log(currentPalette)
+      currentPalette.forEach(p => {
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch';
+        swatch.style.background = p.value;
+        swatch.innerText = p.text;
+        swatch.title = p.value;
+        swatch.onclick = () => colorPicker.value = p.value;
         paletteContainer.appendChild(swatch);
       });
+    }
+    updatePalette()
 
-      const newSize = parseInt(sizeInput.value);
-      if (!isNaN(newSize) && newSize > 0 && newSize <= 128) {
-        size = newSize;
-        createGrid();
-      }
+
+
+
+    let zoom = 20;
+    let size = 32;
+    let pixels = Array.from({ length: size }, () => Array(size).fill('#ffffff'));
+    let labels = Array.from({ length: size }, () => Array(size).fill(null));
+
+    function newCanvas(){
+      size = parseInt(document.getElementById('size').value);
+      zoom = 20;
+      pixels = Array.from({ length: size }, () => Array(size).fill('#ffffff'));
+      labels = Array.from({ length: size }, () => Array(size).fill(null));
+      localStorage.clear()
+      currentPalette = Object.assign([], defPallete)
+      drawCanvas()
     }
 
-    function toggleGrid() {
-      if (gridToggle.checked) {
-        canvas.classList.add("grid-on");
-        canvas.classList.remove("grid-off");
-        
-      } else {
-        canvas.classList.add("grid-off");
-        canvas.classList.remove("grid-on");
-      }
-    }
+    function drawCanvas() {
+      //size = parseInt(document.getElementById('size').value)
 
-    function exportAsPNG() {
-        const canvasEl = document.createElement("canvas");
-        canvasEl.width = size;
-        canvasEl.height = size;
-      
-        const ctx = canvasEl.getContext("2d");
-      
-        const pixels = [...canvas.children];
-        pixels.forEach((pixel, index) => {
-          const x = index % size;
-          const y = Math.floor(index / size);
-          const color = pixel.style.backgroundColor || "#ffffff";
-      
-          // Convertir color CSS a RGB
-          ctx.fillStyle = color;
-          ctx.fillRect(x, y, 1, 1); // 1x1 píxel
-        });
-      
-        // Escalar si quieres un PNG más grande (por ejemplo 512x512)
-        const newSize = parseInt(sizeInput.value);
+      canvas.width = size * zoom;
+      canvas.height = size * zoom;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.font = `${Math.max(zoom / 2.5, 8)}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
 
-        const exportSize = newSize * 2;
-        const exportCanvas = document.createElement("canvas");
-        exportCanvas.width = exportSize;
-        exportCanvas.height = exportSize;
-        const exportCtx = exportCanvas.getContext("2d");
-        exportCtx.imageSmoothingEnabled = false;
-        exportCtx.drawImage(canvasEl, 0, 0, exportSize, exportSize);
-      
-        // Descargar
-        const link = document.createElement("a");
-        link.download = "pixel-art.png";
-        link.href = exportCanvas.toDataURL("image/png");
-        link.click();
-      }
+  const showGrid = document.getElementById("toggleGrid").checked;
+  const showLabels = document.getElementById("toggleLabels").checked;
 
-    document.body.addEventListener("mousedown", () => drawing = true);
-    document.body.addEventListener("mouseup", () => drawing = false);
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          ctx.fillStyle = pixels[y][x];
+          ctx.fillRect(x * zoom, y * zoom, zoom, zoom);
 
-    createGrid(); // Inicializar
+          if (showGrid) {
+            ctx.strokeStyle = "#ccc";
+            ctx.strokeRect(x * zoom, y * zoom, zoom, zoom);
+          }
 
-    document.querySelectorAll(".color-swatch").forEach(swatch => {
-        swatch.addEventListener("click", () => {
-          const color = swatch.dataset.color;
-          colorPicker.value = color;
-        });
-      });
-
-    function loadTemplate(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const data = JSON.parse(e.target.result);
-        if (!data.pallete || !data.template) {
-        alert("Formato inválido de plantilla");
-        return;
-        }
-
-        localStorage.setItem('template', JSON.stringify(data))
-        loadTemplateMethod(data)
-    };
-    
-    reader.readAsText(file);
-    }
-
-    function loadTemplateMethod(data){
-            
-          // 1. Aplicar la nueva paleta
-          const paletteContainer = document.getElementById("colorPalette");
-          paletteContainer.innerHTML = ""; // limpiar
-      
-          data.pallete.forEach(entry => {
-            const swatch = document.createElement("span");
-            swatch.className = "color-swatch";
-            swatch.style.background = entry.value;
-            swatch.dataset.color = entry.value;
-            swatch.title = `#${entry.text}`;
-            swatch.innerHTML = entry.text
-            swatch.addEventListener("click", () => {
-              colorPicker.value = entry.value;
-            });
-            paletteContainer.appendChild(swatch);
-          });
-      
-          // 2. Ajustar el tamaño del grid
-          size = data.template.length;
-          sizeInput.value = size;
-          createGrid();
-      
-          // 3. Pintar los números encima de cada pixel
-          [...canvas.children].forEach((pixel, index) => {
-            const x = index % size;
-            const y = Math.floor(index / size);
-      
-            const num = data.template[y]?.[x];
-      
-            if (num !== undefined) {
-              const label = document.createElement("div");
-              label.className = "pixel-label";
-              label.innerText = num;
-              pixel.appendChild(label);
-            }
-          });
-    }
-
-      function removePixelLabel(pixel) {
-        const label = pixel.querySelector(".pixel-label");
-        if (label) pixel.removeChild(label);
-      }
-
-      function fillFromPixel(startPixel, targetValue, fillColor) {
-        const visited = new Set();
-        const queue = [startPixel];
-      
-        while (queue.length > 0) {
-          const pixel = queue.shift();
-          if (!pixel || visited.has(pixel)) continue;
-      
-          const label = pixel.querySelector(".pixel-label");
-          if (!label || label.innerText !== targetValue) continue;
-      
-          // Pintar pero NO eliminar el número
-          pixel.style.backgroundColor = fillColor;
-          visited.add(pixel);
-      
-          const index = parseInt(pixel.dataset.index);
-          const neighbors = [
-            canvas.children[index - 1],        // izquierda
-            canvas.children[index + 1],        // derecha
-            canvas.children[index - size],     // arriba
-            canvas.children[index + size]      // abajo
-          ];
-      
-          neighbors.forEach(n => {
-            if (n && !visited.has(n)) queue.push(n);
-          });
+          const label = labels[y][x];
+          if (label !== null && showLabels) {
+            ctx.fillStyle = "#000";
+            ctx.fillText(label, x * zoom + zoom / 2, y * zoom + zoom / 2);
+          }
         }
       }
 
-      function validateTemplate() {
-        // Crear un mapa de número → color desde la paleta
-        const swatches = document.querySelectorAll(".color-swatch");
-        const paletteMap = {};
-        swatches.forEach(swatch => {
-          const number = swatch.title?.replace("#", "");
-          const color = swatch.dataset.color?.toLowerCase();
-          if (number !== undefined && color) {
-            paletteMap[number] = color;
-          }
-        });
       
-        // Recorrer cada píxel
-        [...canvas.children].forEach(pixel => {
-          const label = pixel.querySelector(".pixel-label");
-          if (label) {
-            const number = label.innerText;
-            const expectedColor = paletteMap[number];
-            const currentColor = rgbToHex(pixel.style.backgroundColor).toLowerCase();
-      
-            if (expectedColor && currentColor !== expectedColor) {
-              pixel.style.backgroundColor = "#ffffff"; // resetear
-            }
-          }
-        });
-      }
+    }
 
-// Utilidad para convertir "rgb(255,0,0)" → "#ff0000"
-function rgbToHex(rgb) {
-    if (!rgb) return "#ffffff";
-    const match = rgb.match(/\d+/g);
-    if (!match || match.length < 3) return "#ffffff";
-    return "#" + match.slice(0, 3).map(c => {
-      const hex = parseInt(c).toString(16);
-      return hex.length === 1 ? "0" + hex : hex;
-    }).join("");
-}
 
-function share_template(){
-  let template = localStorage.getItem('template')
-  if(template == null) {
-    alert("No tienes una plantilla actualmente")
-    return
+function validateTemplate() {
+  if (!currentPalette || currentPalette.length === 0) {
+    alert("No hay paleta cargada para validar.");
+    return;
   }
 
-  const compressed = LZString.compressToEncodedURIComponent(template);
-  const shareUrl = `${window.location.origin}${window.location.pathname}?tpl=${compressed}`;
-  console.log(shareUrl);
-
-
-    navigator.clipboard.writeText(shareUrl).then(() => {
-    alert("✅ Enlace de plantilla copiado al portapapeles");
-  }).catch(() => {
-    prompt("Copia este enlace:", shareUrl);
+  // Mapa de número → color
+  const paletteMap = {};
+  currentPalette.forEach(p => {
+    paletteMap[p.text] = normalizeColor(p.value);
   });
+
+  let errores = 0;
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const label = labels[y][x];
+      if (label === null) continue;
+
+      const expectedColor = paletteMap[label];
+      const actualColor = normalizeColor(pixels[y][x]);
+
+      if (expectedColor && actualColor !== expectedColor && actualColor != '#ffffff') {
+        pixels[y][x] = "#ffffff"; // Resetear
+        errores++;
+      }
+    }
+  }
+
+  drawCanvas();
+  saveArtToLocal();
+
+  if (errores === 0) {
+    showNotification("✅ Al momento, todo esta correctamente pintado.");
+  } else {
+    showNotification(`❌ Se corrigieron ${errores} píxeles incorrectos.`);
+  }
 }
 
+function showNotification(message, duration = 3000) {
+  const container = document.getElementById("notificationContainer");
+  const notif = document.createElement("div");
+  notif.className = "notification";
+  notif.textContent = message;
+  container.appendChild(notif);
+
+  setTimeout(() => {
+    notif.style.opacity = 0;
+    setTimeout(() => container.removeChild(notif), 300);
+  }, duration);
+}
+
+    function floodFillByLabel(x, y, targetLabel, fillColor) {
+  const visited = new Set();
+  const queue = [[x, y]];
+  const key = (x, y) => `${x},${y}`;
+
+  while (queue.length > 0) {
+    const [cx, cy] = queue.shift();
+    if (cx < 0 || cy < 0 || cx >= size || cy >= size) continue;
+    if (visited.has(key(cx, cy))) continue;
+    if (labels[cy][cx] !== targetLabel) continue;
+
+    pixels[cy][cx] = fillColor;
+    visited.add(key(cx, cy));
+
+    queue.push([cx + 1, cy]);
+    queue.push([cx - 1, cy]);
+    queue.push([cx, cy + 1]);
+    queue.push([cx, cy - 1]);
+  }
+}
+
+    function bucketFillByLabel(targetLabel, fillColor) {
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (labels[y][x] === targetLabel) {
+        pixels[y][x] = fillColor;
+      }
+    }
+  }
+}
+function floodFill(x, y, targetColor, fillColor) {
+  const queue = [[x, y]];
+  const visited = new Set();
+
+  const key = (x, y) => `${x},${y}`;
+
+  while (queue.length > 0) {
+    const [cx, cy] = queue.shift();
+    if (cx < 0 || cy < 0 || cx >= size || cy >= size) continue;
+    if (visited.has(key(cx, cy))) continue;
+    if (pixels[cy][cx] !== targetColor) continue;
+
+    pixels[cy][cx] = fillColor;
+    visited.add(key(cx, cy));
+
+    queue.push([cx + 1, cy]);
+    queue.push([cx - 1, cy]);
+    queue.push([cx, cy + 1]);
+    queue.push([cx, cy - 1]);
+  }
+}
+
+function normalizeColor(color) {
+  const ctxTmp = document.createElement('canvas').getContext('2d');
+  ctxTmp.fillStyle = color;
+  return ctxTmp.fillStyle.toLowerCase(); // ej. "#ff0000"
+}
+
+function saveArtToLocal() {
+  const data = {
+    size,
+    pixels,
+    labels,
+    palette: currentPalette 
+  };
+  localStorage.setItem("pixelArtData", JSON.stringify(data));
+}
+  function zoomIn() {
+    zoom = Math.min(zoom + 5, 60);
+    drawCanvas();
+  }
+  function zoomOut() {
+    zoom = Math.max(zoom - 5, 5);
+    drawCanvas();
+  }
+
 function generateTemplateFromCanvas() {
-  const pixels = [...canvas.children];
   const usedColors = new Map();
   const template = [];
-
   let colorIndex = 0;
 
   for (let y = 0; y < size; y++) {
     const row = [];
     for (let x = 0; x < size; x++) {
-      const i = y * size + x;
-      const pixel = pixels[i];
-      let color = pixel.style.backgroundColor || "rgb(255,255,255)";
-
-      // Convertir a hex
-      color = rgbToHex(color).toUpperCase();
+      let color = pixels[y][x] || "#ffffff";
+      color = normalizeColor(color).toUpperCase();
 
       if (!usedColors.has(color)) {
         usedColors.set(color, colorIndex++);
@@ -586,12 +398,12 @@ function generateTemplateFromCanvas() {
     template.push(row);
   }
 
-  if(Array.from(usedColors.entries()).length == 1) {
-    alert("No tienes nada que compartir :(")
-    return
+  // Si solo hay un color, no tiene sentido compartir
+  if (usedColors.size <= 1) {
+    alert("No hay suficientes colores para compartir.");
+    return;
   }
 
-  // Crear paleta
   const palette = Array.from(usedColors.entries()).map(([color, index]) => ({
     text: index,
     value: color
@@ -603,48 +415,161 @@ function generateTemplateFromCanvas() {
   };
 
   const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(json));
-  const shareUrl = `${window.location.origin}${window.location.pathname}?tpl=${compressed}`;
+  const shareUrl = `${location.origin}${location.pathname}?tpl=${compressed}`;
 
   // Copiar al portapapeles
   navigator.clipboard.writeText(shareUrl).then(() => {
-    alert("✅ Enlace de plantilla copiado al portapapeles");
+    alert("✅ Enlace copiado al portapapeles.");
   }).catch(() => {
     prompt("Copia este enlace:", shareUrl);
   });
 }
-  
-  window.onload = function() {
-    let template = localStorage.getItem('template')
-    if(template != null){
-        loadTemplateMethod(JSON.parse(template))
-    }
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / zoom);
+      const y = Math.floor((e.clientY - rect.top) / zoom);
 
-    const params = new URLSearchParams(window.location.search);
-    const compressedTpl = params.get("tpl");
-    if (compressedTpl) {
-      try {
-        const jsonStr = LZString.decompressFromEncodedURIComponent(compressedTpl);
-        const data = JSON.parse(jsonStr);
-        if(!data.pallete && !data.template){
-          return
+      if (x < 0 || x >= size || y < 0 || y >= size) return;
+
+      if (currentTool === "pencil") {
+        pixels[y][x] = colorPicker.value;
+      } else if (currentTool === "bucket") {
+        const targetLabel = labels[y][x];
+        if (targetLabel !== null) {
+          floodFillByLabel(x, y, targetLabel, normalizeColor(colorPicker.value));
+        }
+      }
+
+      drawCanvas();
+      saveArtToLocal()
+    });
+
+    document.getElementById('templateInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const data = JSON.parse(ev.target.result);
+        if (!data.pallete || !data.template) {
+          alert("Plantilla inválida");
+          return;
         }
 
-        loadTemplateMethod(data);
-        localStorage.setItem('template', jsonStr)
-        history.replaceState(null, "", window.location.pathname);
-      } catch (err) {
-        //alert("Error al cargar la plantilla desde la URL");
+        size = data.template.length;
+        pixels = Array.from({ length: size }, () => Array(size).fill('#ffffff'));
+        labels = Array.from({ length: size }, () => Array(size).fill(null));
+
+        const colorMap = {};
+        for (let c of data.pallete) {
+          colorMap[c.text] = c.value;
+        }
+
+        // construir la paleta visual
+        paletteContainer.innerHTML = '';
+        currentPalette = data.pallete;
+        data.pallete.forEach(p => {
+          const swatch = document.createElement('div');
+          swatch.className = 'color-swatch';
+          swatch.style.background = p.value;
+          swatch.innerText = p.text;
+          swatch.title = p.value;
+          swatch.onclick = () => colorPicker.value = p.value;
+          paletteContainer.appendChild(swatch);
+        });
+
+        for (let y = 0; y < size; y++) {
+          for (let x = 0; x < size; x++) {
+            const num = data.template[y][x];
+            labels[y][x] = num;
+          }
+        }
+        drawCanvas();
+        saveArtToLocal();
+      };
+      reader.readAsText(file);
+    });
+
+function loadFromUrl(){
+  const params = new URLSearchParams(window.location.search);
+const compressedTpl = params.get("tpl");
+if (compressedTpl) {
+  try {
+    console.log('loading from url')
+    const jsonStr = LZString.decompressFromEncodedURIComponent(compressedTpl);
+    const data = JSON.parse(jsonStr);
+    if (!data.pallete || !data.template) return;
+
+    size = data.template.length;
+    pixels = Array.from({ length: size }, () => Array(size).fill('#ffffff'));
+    labels = Array.from({ length: size }, () => Array(size).fill(null));
+    currentPalette = data.pallete;
+
+    // reconstruir la paleta visual
+    paletteContainer.innerHTML = '';
+    currentPalette.forEach(p => {
+      const swatch = document.createElement('div');
+      swatch.className = 'swatch';
+      swatch.style.background = p.value;
+      swatch.innerText = p.text;
+      swatch.title = p.value;
+      swatch.onclick = () => colorPicker.value = p.value;
+      paletteContainer.appendChild(swatch);
+    });
+
+    // aplicar etiquetas
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        labels[y][x] = data.template[y][x];
       }
     }
 
-    let art = localStorage.getItem('art')
-    if(art != null) {
-        loadArtMethod(JSON.parse(art))
+    drawCanvas();
+    localStorage.setItem("pixelArtData", JSON.stringify({ size, pixels, labels, palette: currentPalette }));
+    history.replaceState(null, "", location.pathname); // limpiar ?tpl de la URL
+  } catch (err) {
+    alert("❌ No se pudo cargar la plantilla desde la URL.");
+  }
+}
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+   console.log('on load...')
+  const saved = localStorage.getItem("pixelArtData");
+    try {
+     
+      const params = new URLSearchParams(window.location.search);
+      const compressedTpl = params.get("tpl");
+      if(compressedTpl) {
+        loadFromUrl()
+        return
+      }
+
+      if(!saved) {
+        drawCanvas()
+        return
+      }
+
+      const data = JSON.parse(saved);
+
+
+      if (data.size && data.pixels) {
+        size = data.size;
+        pixels = data.pixels;
+        labels = data.labels || Array.from({ length: size }, () => Array(size).fill(null));
+        currentPalette = data.palette;
+        updatePalette()
+        drawCanvas();
+      }
+    } catch (err) {
+      console.error("Error cargando datos guardados:", err);
     }
+  
+});
 
 
-    
-  };
-</script>
+
+  </script>
+  <div id="notificationContainer"></div>
 </body>
 </html>
