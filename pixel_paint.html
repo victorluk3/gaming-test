@@ -236,11 +236,31 @@
     function zoomIn() {
       zoom = Math.min(zoom + 3, 60);
       updateZoom();
+      updateZoomLabel()
+    }
+
+    function updateZoomLabel(){
+       console.log('zoom', zoom)
+      if(zoom < 17) {
+        document.querySelectorAll('.pixel-label').forEach(f => f.style.fontSize = '8px')
+      }
+      if(zoom >= 17 && zoom < 20) {
+        document.querySelectorAll('.pixel-label').forEach(f => f.style.fontSize = '8px')
+      }
+      if(zoom > 23 && zoom < 29) {
+        document.querySelectorAll('.pixel-label').forEach(f => f.style.fontSize = '12px')
+      }
+      if(zoom > 29) {
+        document.querySelectorAll('.pixel-label').forEach(f => f.style.fontSize = '14px')
+      }
     }
 
     function zoomOut() {
       zoom = Math.max(3, zoom - 3);
       updateZoom();
+      updateZoomLabel()
+     
+
     }
 
     function updateZoom() {
