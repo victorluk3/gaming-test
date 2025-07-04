@@ -127,6 +127,7 @@
 
 
         <div class="toolbar-row">
+          <button onclick="guardarComoPNG()">💾 Guardar PNG</button>
           <button onclick="validateTemplate()">🧹 Validar</button>
           <button onclick="zoomIn()" class="file-button">🔍+</button>
           <button onclick="zoomOut()" class="file-button">🔍-</button>
@@ -177,6 +178,28 @@
 
 
     }
+
+    function guardarComoPNG() {
+  // Crear un canvas del tamaño original
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = size;
+  exportCanvas.height = size;
+  const exportCtx = exportCanvas.getContext("2d");
+
+  // Dibujar píxeles sin zoom
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      exportCtx.fillStyle = pixels[y][x];
+      exportCtx.fillRect(x, y, 1, 1);
+    }
+  }
+
+  // Convertir a imagen y descargar
+  const link = document.createElement("a");
+  link.download = "pixel_art.png";
+  link.href = exportCanvas.toDataURL("image/png");
+  link.click();
+}
 
     const canvas = document.getElementById('pixelCanvas');
     const ctx = canvas.getContext('2d');
