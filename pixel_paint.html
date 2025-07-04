@@ -500,11 +500,11 @@ function saveArtToLocal() {
   localStorage.setItem("pixelArtData", JSON.stringify(data));
 }
   function zoomIn() {
-    zoom = Math.min(zoom + 5, 60);
+    zoom = Math.min(zoom + 5, 70);
     drawCanvas();
   }
   function zoomOut() {
-    zoom = Math.max(zoom - 5, 5);
+    zoom = Math.max(zoom - 5, 3);
     drawCanvas();
   }
 
