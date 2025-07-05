@@ -111,6 +111,41 @@
   opacity: 0.95;
   transition: opacity 0.3s ease;
 }
+.lbl {
+  border: 1px solid #CCC;
+  padding: 5px;
+  margin-left:3px;
+}
+
+#colorNav {
+  position: fixed;
+  display: flex;
+  gap: 5px;
+  z-index: 1000;
+}
+
+#colorNav button {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: #444;
+  color: white;
+  font-size: 18px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* Posiciones posibles */
+.corner-br { bottom: 20px; right: 20px; flex-direction: row; }
+.corner-bl { bottom: 20px; left: 20px; flex-direction: row; }
+.corner-tr { top: 20px; right: 20px; flex-direction: row; }
+.corner-tl { top: 20px; left: 20px; flex-direction: row; }
+
+@media (min-width: 768px) {
+  #colorNav {
+    display: none;
+  }
+}
   </style>
 </head>
 <body>
@@ -121,23 +156,23 @@
           <label class="file-button">🧩 Plantilla
             <input type="file" id="templateInput"  accept="application/json" hidden />
           </label>
-        <button onclick="compartirTemplate()" class="file-button">🔗 Compartir plantilla</button>
-        <button onclick="generateTemplateFromCanvas()" class="file-button">🔗 Compartir lienzo</button>
+        <button onclick="compartirTemplate()" class="file-button">🔗 plantilla</button>
+        <button onclick="generateTemplateFromCanvas()" class="file-button">🔗 lienzo</button>
       </div>
 
 
         <div class="toolbar-row">
-          <button onclick="guardarComoPNG()">💾 Guardar PNG</button>
-          <button onclick="validateTemplate()">🧹 Validar</button>
+          <button onclick="guardarComoPNG()" class="file-button">💾  PNG</button>
+          <button onclick="validateTemplate()" class="file-button">🧹 Validar</button>
           <button onclick="zoomIn()" class="file-button" style="padding:10px;margin-top:2px;">🔍+</button>
           <button onclick="zoomOut()" class="file-button" style="padding:10px;margin-top:2px;">🔍-</button>
-          <label>
+          <label class="lbl">
           <input type="checkbox" id="toggleLabels" checked onchange="drawCanvas()" />
-          Mostrar números
+           Números
         </label>
-        <label>
+        <label class="lbl">
           <input type="checkbox" id="toggleGrid" checked onchange="drawCanvas()" />
-          Mostrar cuadrícula
+          Cuadrícula
         </label>
         </div>
         <div class="toolbar-row" style="margin-top:3px">
@@ -164,9 +199,27 @@
     <canvas id="pixelCanvas" width="32" height="32"></canvas>
   </div>
 
+  <div id="colorNav" class="corner-br">
+  <button onclick="cambiarColorEnPaleta(-1)">◀️</button>
+  <button onclick="cambiarColorEnPaleta(1)">▶️</button>
+  <button id="cornerToggle" onclick="moverEsquina()">🔀</button>
+</div>
+
   <script>
 
     let currentTool = "pencil"; // "pencil" o "bucket"
+    let esquinaActual = 0; // 0 = br, 1 = bl, 2 = tl, 3 = tr
+const esquinas = ["corner-br", "corner-bl", "corner-tl", "corner-tr"];
+
+function moverEsquina() {
+  const nav = document.getElementById("colorNav");
+  nav.classList.remove(esquinas[esquinaActual]);
+  esquinaActual = (esquinaActual + 1) % esquinas.length;
+  nav.classList.add(esquinas[esquinaActual]);
+
+  // guardar en localStorage (opcional)
+  localStorage.setItem("ui_esquina", esquinaActual);
+}
 
 
     function setTool(tool){
@@ -715,10 +768,20 @@ if (compressedTpl) {
 }
 }
 
+function loadMoveColorTool(){
+    const saved = localStorage.getItem("ui_esquina");
+  if (saved !== null) {
+    esquinaActual = parseInt(saved);
+    document.getElementById("colorNav").classList.add(esquinas[esquinaActual]);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
    console.log('on load...')
   const saved = localStorage.getItem("pixelArtData");
     try {
+
+      loadMoveColorTool()
      
       const params = new URLSearchParams(window.location.search);
       const compressedTpl = params.get("tpl");
