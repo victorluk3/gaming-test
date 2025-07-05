@@ -121,7 +121,7 @@
           <label class="file-button">🧩 Plantilla
             <input type="file" id="templateInput"  accept="application/json" hidden />
           </label>
-
+        <button onclick="compartirTemplate()" class="file-button">🔗 Compartir plantilla</button>
         <button onclick="generateTemplateFromCanvas()" class="file-button">🔗 Compartir lienzo</button>
       </div>
 
@@ -129,8 +129,8 @@
         <div class="toolbar-row">
           <button onclick="guardarComoPNG()">💾 Guardar PNG</button>
           <button onclick="validateTemplate()">🧹 Validar</button>
-          <button onclick="zoomIn()" class="file-button">🔍+</button>
-          <button onclick="zoomOut()" class="file-button">🔍-</button>
+          <button onclick="zoomIn()" class="file-button" style="padding:10px;margin-top:2px;">🔍+</button>
+          <button onclick="zoomOut()" class="file-button" style="padding:10px;margin-top:2px;">🔍-</button>
           <label>
           <input type="checkbox" id="toggleLabels" checked onchange="drawCanvas()" />
           Mostrar números
@@ -283,6 +283,29 @@ function setActiveColor(color) {
         showNotification("Empezaste un nuevo lienzo!")
       },500)
     }
+
+    function compartirTemplate() {
+  if (!currentPalette || !labels) {
+    alert("No hay plantilla cargada.");
+    return;
+  }
+
+  const data = {
+    pallete: currentPalette,
+    template: labels
+  };
+
+  const jsonStr = JSON.stringify(data);
+  const compressed = LZString.compressToEncodedURIComponent(jsonStr);
+  const shareUrl = `${location.origin}${location.pathname}?tpl=${compressed}`;
+
+  // Copiar al portapapeles o mostrar
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    showNotification("✅ Enlace copiado al portapapeles.");
+  }).catch(() => {
+    prompt("Copia este enlace:", shareUrl);
+  });
+}
 
     function drawCanvas() {
       //size = parseInt(document.getElementById('size').value)
