@@ -703,15 +703,8 @@ canvas.addEventListener('click', (e) => {
         // construir la paleta visual
         paletteContainer.innerHTML = '';
         currentPalette = data.pallete;
-        data.pallete.forEach(p => {
-          const swatch = document.createElement('div');
-          swatch.className = 'color-swatch';
-          swatch.style.background = p.value;
-          swatch.innerText = p.text;
-          swatch.title = p.value;
-          swatch.onclick = () => colorPicker.value = p.value;
-          paletteContainer.appendChild(swatch);
-        });
+        updatePalette()
+        cambiarColorEnPaleta(1);
 
         for (let y = 0; y < size; y++) {
           for (let x = 0; x < size; x++) {
