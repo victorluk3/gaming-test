@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div>
+        <div id="table">
+
+        </div>
+
+    </div>
+</body>
+<script>
+    let arrayTable = [
+        ['a','b', 'c', 'd', 'e', 'f', 'g', '1', '2'],
+        ['h','i', 'j', 'k', 'l', 'm', 'n', '3', '4']
+    ]
+    function initTable(){
+        let stringTable = "<table border=\"1\">"
+
+            for(let i=0;i<arrayTable.length;i++){
+                stringTable += "<tr>"
+                let content = arrayTable[i]
+                for(let y=0;y<content.length;y++){
+                    stringTable +="<td width='200px' height='200px'>"+content[y]+"</td>"
+                }
+                stringTable += "</tr>"
+            }
+        stringTable +="<table>"
+            document.getElementById("table").innerHTML = stringTable
+    }
+    initTable()
+</script>
+</html>

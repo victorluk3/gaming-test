@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador de Dado</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #d1c4e9, #bbdefb);
+      text-align: center;
+      padding: 30px;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    button {
+      margin: 10px;
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 12px;
+      background: #3949ab;
+      color: white;
+      font-weight: bold;
+      transition: transform 0.2s, background 0.3s;
+    }
+    button:disabled {
+      background: #9fa8da;
+      cursor: not-allowed;
+    }
+    button:hover:enabled {
+      background: #303f9f;
+      transform: scale(1.05);
+    }
+
+    /* Contenedor 3D */
+    .dice {
+      width: 100px;
+      height: 100px;
+      margin: 40px auto;
+      perspective: 800px;
+    }
+    .dice-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 1s ease-out;
+    }
+    .face {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      background: white;
+      border: 2px solid #333;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    /* Posiciones de las caras */
+    .front  { transform: rotateY(0deg) translateZ(50px); }
+    .back   { transform: rotateY(180deg) translateZ(50px); }
+    .right  { transform: rotateY(90deg) translateZ(50px); }
+    .left   { transform: rotateY(-90deg) translateZ(50px); }
+    .top    { transform: rotateX(90deg) translateZ(50px); }
+    .bottom { transform: rotateX(-90deg) translateZ(50px); }
+
+    #result {
+      margin-top: 20px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Simulador de Dado 🎲</h1>
+
+  <div class="dice">
+    <div class="dice-inner" id="dice">
+      <div class="face front">1</div>
+      <div class="face back">6</div>
+      <div class="face right">3</div>
+      <div class="face left">4</div>
+      <div class="face top">5</div>
+      <div class="face bottom">2</div>
+    </div>
+  </div>
+
+  <button id="rollBtn">Tirar dado</button>
+  <div id="result">Resultado: -</div>
+
+  <script>
+    const dice = document.getElementById("dice");
+    const rollBtn = document.getElementById("rollBtn");
+    const resultEl = document.getElementById("result");
+
+    let rolling = false;
+
+    rollBtn.addEventListener("click", () => {
+      if (rolling) return;
+
+      rolling = true;
+      rollBtn.disabled = true;
+      resultEl.textContent = "Rodando...";
+
+      // Elegir un número entre 1 y 6
+      const roll = Math.floor(Math.random() * 6) + 1;
+
+      // Ángulos para mostrar cada cara al frente
+      const rotations = {
+        1: [0, 0],
+        2: [90, 0],
+        3: [0, -90],
+        4: [0, 90],
+        5: [-90, 0],
+        6: [0, 180]
+      };
+
+      const [x, y] = rotations[roll];
+
+      // Giros extra para que siempre dé vueltas (random para más realismo)
+      const extraX = 360 * (Math.floor(Math.random() * 4) + 2);
+      const extraY = 360 * (Math.floor(Math.random() * 4) + 2);
+
+      dice.style.transform = `rotateX(${x + extraX}deg) rotateY(${y + extraY}deg)`;
+
+      // Esperar a que termine la animación
+      setTimeout(() => {
+        resultEl.textContent = `Resultado: ${roll}`;
+        rolling = false;
+        rollBtn.disabled = false;
+      }, 1000); // mismo tiempo que el transition
+    });
+  </script>
+
+</body>
+</html>
