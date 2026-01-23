@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Chess P2P</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js" integrity="sha512-XEKeWX+mI3Ov+tg2evDlVQFzVOIp4T8J3cNcCEPaEUGpxJV3eZaN8rHuvnFPvQpGJBHPmrozJDMpm2xcDvtmyQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" integrity="sha512-xRllwz2gdZciIB+AkEbeq+gVhX8VB8XsfqeFbUh+SzHlN96dEduwtTuVuc2u9EROlmW9+yhRlxjif66ORpsgVA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; display: flex; flex-direction: column; align-items: center; }
+        .panel { background: #333; padding: 20px; border-radius: 8px; margin: 10px; border: 1px solid #444; text-align: center; }
+        #status { font-weight: bold; margin: 10px; font-size: 1.4em; padding: 10px; border-radius: 5px; min-height: 40px; }
+        canvas { border: 5px solid #555; background: #eee; cursor: pointer; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .hidden { display: none; }
+        button { padding: 10px 20px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; }
+        input { padding: 9px; border-radius: 4px; border: 1px solid #ccc; width: 250px; }
+        .blancas { color: #3498db; } .negras { color: #e74c3c; }   
+        .jaque-anim { animation: pulse 1s infinite; background: #d35400; color: white !important; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    </style>
+</head>
+<body>
+
+    <h1>♟️ Ajedrez P2P</h1>
+
+    <div id="setup" class="panel">
+        <p>Tu ID: <strong id="my-id" style="color: #f1c40f;">Generando...</strong></p>
+        <button onclick="iniciarPartida('w')">CREAR PARTIDA (Blancas/Azules)</button>
+        <div style="margin: 15px 0;">ó</div>
+        <input type="text" id="input-peer-id" placeholder="ID del amigo">
+        <button onclick="unirseAPartida()" style="background:#2980b9">UNIRSE (Negras/Rojas)</button>
+    </div>
+
+    <div id="game-area" class="hidden">
+        <div id="status">Conectando...</div>
+        <div id="player-info" style="margin-bottom: 10px;"></div>
+        <canvas id="board" width="400" height="400"></canvas>
+        <p style="color: #888;">Perspectiva de: <span id="perspectiva"></span></p>
+    </div>
+
+    <script>
+        const chess = new Chess();
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        const statusLabel = document.getElementById('status');
+        const tam = 50;
+        
+        let peer = new Peer();
+        let conn, miColor, selectedSq = null;
+
+        peer.on('open', id => document.getElementById('my-id').innerText = id);
+
+        function iniciarPartida(color) {
+            miColor = color;
+            document.getElementById('setup').innerHTML = "<h3>Esperando conexión...</h3>";
+            peer.on('connection', c => { conn = c; prepararJuego(); });
+        }
+
+        function unirseAPartida() {
+            miColor = 'b';
+            const id = document.getElementById('input-peer-id').value;
+            conn = peer.connect(id);
+            prepararJuego();
+        }
+
+        function prepararJuego() {
+            conn.on('open', () => {
+                document.getElementById('setup').classList.add('hidden');
+                document.getElementById('game-area').classList.remove('hidden');
+                document.getElementById('player-info').innerHTML = `Juegas con: <b class="${miColor === 'w' ? 'blancas' : 'negras'}">${miColor === 'w' ? 'Blancas' : 'Negras'}</b>`;
+                document.getElementById('perspectiva').innerText = miColor === 'w' ? 'Blancas' : 'Negras';
+                actualizarInterfaz();
+            });
+            conn.on('data', (mov) => { chess.move(mov); actualizarInterfaz(); });
+        }
+
+        function actualizarInterfaz() {
+            dibujarTablero();
+            const esMiTurno = chess.turn() === miColor;
+            statusLabel.classList.remove('jaque-anim');
+
+            if (chess.in_checkmate()) {
+                statusLabel.innerText = "¡JAQUE MATE!";
+                statusLabel.style.color = "#f1c40f";
+            } else if (chess.in_check()) {
+                statusLabel.innerText = "⚠️ ¡JAQUE!";
+                statusLabel.classList.add('jaque-anim');
+            } else {
+                statusLabel.innerText = esMiTurno ? "TU TURNO" : "TURNO DEL OPONENTE";
+                statusLabel.style.color = esMiTurno ? "#2ecc71" : "#e74c3c";
+            }
+        }
+
+        function dibujarTablero() {
+            const iconos = {'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','K':'♚','Q':'♛','R':'♜','B':'♝','N':'♞','P':'♟'};
+            
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    // LÓGICA DE INVERSIÓN: Si soy negras, dibujo 7-r y 7-c
+                    let drawR = miColor === 'b' ? 7 - r : r;
+                    let drawC = miColor === 'b' ? 7 - c : c;
+
+                    ctx.fillStyle = (r + c) % 2 === 0 ? '#f0d9b5' : '#b58863';
+                    if (selectedSq && selectedSq.r === r && selectedSq.c === c) ctx.fillStyle = '#f1c40f';
+                    
+                    ctx.fillRect(drawC * tam, drawR * tam, tam, tam);
+
+                    const sq = String.fromCharCode(97 + c) + (8 - r);
+                    const p = chess.get(sq);
+                    if (p) {
+                        ctx.fillStyle = (p.color === 'w') ? '#fff' : '#000';
+                        ctx.font = "40px Arial";
+                        ctx.textAlign = "center";
+                        ctx.fillText(iconos[p.type], drawC * tam + 25, drawR * tam + 40);
+                    }
+                }
+            }
+        }
+
+        canvas.onclick = (e) => {
+            if (chess.turn() !== miColor || chess.game_over()) return;
+            const rect = canvas.getBoundingClientRect();
+            let clickC = Math.floor((e.clientX - rect.left) / tam);
+            let clickR = Math.floor((e.clientY - rect.top) / tam);
+
+            // TRADUCCIÓN DE COORDENADAS: Si la vista está invertida, calculamos la casilla real
+            let c = miColor === 'b' ? 7 - clickC : clickC;
+            let r = miColor === 'b' ? 7 - clickR : clickR;
+            
+            const sq = String.fromCharCode(97 + c) + (8 - r);
+
+            if (!selectedSq) {
+                const p = chess.get(sq);
+                if (p && p.color === miColor) { 
+                    selectedSq = { r, c, name: sq }; 
+                    dibujarTablero(); 
+                }
+            } else {
+                const move = chess.move({ from: selectedSq.name, to: sq, promotion: 'q' });
+                if (move) { conn.send(move); actualizarInterfaz(); }
+                selectedSq = null;
+                dibujarTablero();
+            }
+        };
+    </script>
+</body>
+</html>
