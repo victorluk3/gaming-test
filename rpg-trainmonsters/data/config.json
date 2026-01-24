@@ -1,0 +1,24 @@
+{
+  "game": {
+    "title": "RPG - Train Monsters",
+    "version": "1.0.0"
+  },
+  "tilemaps": {
+    "start": {
+      "name": "Mundo Principal",
+      "path": "data/tilemaps/tilemap_start.json",
+      "playerStart": {
+        "x": 10,
+        "y": 10
+      }
+    },
+    "building": {
+      "name": "Edificio",
+      "path": "data/tilemaps/tilemap_building.json",
+      "playerStart": {
+        "x": 5,
+        "y": 8
+      }
+    }
+  }
+}

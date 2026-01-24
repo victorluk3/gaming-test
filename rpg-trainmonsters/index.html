@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG - Train Monsters</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="info">
+            <div class="info-line">Tile X: <span id="posX">0</span></div>
+            <div class="info-line">Tile Y: <span id="posY">0</span></div>
+            <div class="info-line">FPS: <span id="fps">0</span></div>
+        </div>
+        <div id="controls">
+            <div class="dpad">
+                <button class="dpad-btn" data-direction="up">▲</button>
+                <button class="dpad-btn" data-direction="left">◄</button>
+                <button class="dpad-btn" data-direction="down">▼</button>
+                <button class="dpad-btn" data-direction="right">►</button>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn" data-action="attack">A</button>
+                <button class="action-btn" data-action="back">B</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts organizados por orden de dependencia -->
+    <script src="js/sprite.js"></script>
+    <script src="js/types.js"></script>
+    <script src="js/move.js"></script>
+    <script src="js/monster.js"></script>
+    <script src="js/terrain.js"></script>
+    <script src="js/tilemap.js"></script>
+    <script src="js/tilemap-loader.js"></script>
+    <script src="js/encounter.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/party.js"></script>
+    <script src="js/battle.js"></script>
+    <script src="js/battle-ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/monster-examples.js"></script>
+</body>
+</html>
