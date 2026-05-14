@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Mobile Tetris JS</title>
+    <style>
+        body { background: #202028; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+        #game-container { position: relative; margin-top: 20px; border: 2px solid #fff; }
+        canvas { display: block; background-color: #000; }
+        #score { font-size: 24px; margin: 10px; }
+        .instructions { font-size: 0.8em; color: #aaa; text-align: center; padding: 10px; }
+    </style>
+</head>
+<body>
+    <button id="pause-btn" style="padding: 10px 20px; margin: 10px; font-size: 16px;">Pausar / Reanudar</button>
+    <div id="score">Puntos: 0</div>
+    <div id="game-container">
+        <canvas id="tetris" width="240" height="400"></canvas>
+    </div>
+    <div class="instructions">
+        Desliza Lateral: Mover | Tocar: Rotar | Deslizar Abajo: Caída rápida
+    </div>
+    <script src="scripts/tetris.js"></script>
+</body>
+</html>
