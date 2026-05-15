@@ -155,7 +155,7 @@ function drawGameOver() {
 
 function updateScore() {
     // Mostramos el Nivel, las Líneas totales y los Puntos
-    scoreElement.innerHTML = `L: ${currentLevel} | Ln: ${totalLines} S: ${player.score}`;
+    scoreElement.innerHTML = `Lvl: ${currentLevel} | Score: ${player.score}`;
 
     // NUEVO: El nivel sube cada 20 líneas
     let newLevel = Math.floor(totalLines / 20);
@@ -291,7 +291,8 @@ function saveGameState() {
         arena: arena,
         player: player,
         dropInterval: dropInterval,
-        currentLevel: currentLevel
+        currentLevel: currentLevel,
+        totalLines: totalLines
     };
     localStorage.setItem('tetrisSave', JSON.stringify(gameState));
 }
@@ -315,7 +316,7 @@ function loadGameState() {
             player.matrix = state.player.matrix;
             dropInterval = state.dropInterval;
             currentLevel = state.currentLevel || 0;
-            
+            totalLines = state.totalLines || 0;
             updateScore();
             draw();
             return true; // Éxito al cargar
