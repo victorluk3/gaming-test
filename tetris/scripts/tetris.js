@@ -2,6 +2,12 @@
 const canvas = document.getElementById('tetris');
 const context = canvas.getContext('2d');
 const scoreElement = document.getElementById('score');
+
+
+const nextCanvas = document.getElementById('nextPieces');
+const nextContext = nextCanvas.getContext('2d');
+nextContext.scale(20, 20); 
+
 let dropCounter = 0;
 let dropInterval = 900; 
 let lastTime = 0;
@@ -9,8 +15,18 @@ let currentLevel = 0;
 let paused = false;
 let totalLines = 0;
 let gameOver = false; 
+let pieceQueue = [];
 
 context.scale(20, 20);
+
+// Llena la cola inicialmente con 3 piezas
+function initPieceQueue() {
+    pieceQueue = [
+        createPiece(getRandomPieceType()),
+        createPiece(getRandomPieceType()),
+        createPiece(getRandomPieceType())
+    ];
+}
 
 // 1. Definición de Piezas
 function createPiece(type) {
@@ -37,6 +53,8 @@ function draw() {
     context.fillRect(0, 0, canvas.width, canvas.height);
     drawMatrix(arena, {x: 0, y: 0});
     drawMatrix(player.matrix, player.pos);
+    
+    drawNextPieces(); // <-- Asegura que el panel lateral esté actualizado
 }
 
 function drawMatrix(matrix, offset) {
@@ -269,30 +287,66 @@ function togglePause() {
 
 
 function playerReset() {
-    const pieces = 'ILJOTSZ';
-    player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+    // Si la cola está vacía (al iniciar por primera vez), la llenamos
+    if (pieceQueue.length === 0) {
+        initPieceQueue();
+    }
+
+    // El jugador toma la pieza que va primero en la cola
+    player.matrix = pieceQueue.shift();
+    // Añadimos una nueva pieza al final de la cola para mantener el ciclo
+    pieceQueue.push(createPiece(getRandomPieceType()));
+
     player.pos.y = 0;
     player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
 
-    // Si la pieza nueva colisiona al salir, el jugador pierde
     if (collide(arena, player)) {
-        gameOver = true; 
-        localStorage.removeItem('tetrisSave'); // Borramos el guardado ya que perdió
-        drawGameOver(); // Dibujamos la pantalla de Game Over
-    } else {
-        if (!paused) saveGameState();
+        arena.forEach(row => row.fill(0));
+        player.score = 0;
+        totalLines = 0;
+        currentLevel = 0;
+        dropInterval = 1000;
+        initPieceQueue(); // Reiniciar la cola de piezas en Game Over
+        localStorage.removeItem('tetrisSave');
+        updateScore();
     }
+    
+    if (!paused && !gameOver) saveGameState();
+    drawNextPieces(); // Dibujar la previsualización cada vez que cambia la cola
 }
 
+function drawNextPieces() {
+    // Limpiar el canvas secundario
+    nextContext.fillStyle = '#000';
+    nextContext.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+
+    // Dibujar la SIGUIENTE pieza (Posición superior en el canvas pequeño)
+    // Desplazamos un poco en X e Y para centrarla visualmente (offset)
+    drawNextMatrix(pieceQueue[0], nextContext, {x: 0.5, y: 0.5});
+
+    // Dibujar la SUBSIGUIENTE pieza (Posición inferior)
+    drawNextMatrix(pieceQueue[1], nextContext, {x: 0.5, y: 4.5});
+}
+
+function drawNextMatrix(matrix, ctx, offset) {
+    matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value !== 0) {
+                ctx.fillStyle = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'cyan'][value - 1];
+                ctx.fillRect(x + offset.x, y + offset.y, 1, 1);
+            }
+        });
+    });
+}
 
 function saveGameState() {
-    // Aseguramos que guardamos valores actuales
     const gameState = {
         arena: arena,
         player: player,
         dropInterval: dropInterval,
         currentLevel: currentLevel,
-        totalLines: totalLines
+        totalLines: totalLines,
+        pieceQueue: pieceQueue // <-- GUARDAR COLA
     };
     localStorage.setItem('tetrisSave', JSON.stringify(gameState));
 }
@@ -303,23 +357,22 @@ function loadGameState() {
         try {
             const state = JSON.parse(savedData);
             
-            // Restaurar arena
             state.arena.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    arena[y][x] = value;
-                });
+                row.forEach((value, x) => { arena[y][x] = value; });
             });
 
-            // Restaurar datos del jugador
             player.score = state.player.score;
             player.pos = state.player.pos;
             player.matrix = state.player.matrix;
             dropInterval = state.dropInterval;
             currentLevel = state.currentLevel || 0;
             totalLines = state.totalLines || 0;
+            
+            pieceQueue = state.pieceQueue || []; 
+            
             updateScore();
             draw();
-            return true; // Éxito al cargar
+            return true;
         } catch (e) {
             console.error("Error cargando partida", e);
             return false;
@@ -329,10 +382,13 @@ function loadGameState() {
 }
 
 
-// Intentamos cargar partida. Si no devuelve true, reseteamos al jugador para empezar de cero.
 const loaded = loadGameState();
 if (!loaded) {
-    playerReset();
+    initPieceQueue(); // Llenar la cola si es partida nueva
+    playerReset();    // Cargar primera pieza al jugador
+} else if (pieceQueue.length < 3) {
+    // Parche por si venías de un guardado viejo sin cola de piezas
+    initPieceQueue();
 }
 
 updateScore();

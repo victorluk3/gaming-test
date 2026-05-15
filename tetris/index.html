@@ -14,10 +14,22 @@
     </style>
 </head>
 <body>
-    <button id="pause-btn" style="padding: 10px 20px; margin: 10px; font-size: 16px;">Pausar / Reanudar</button>
-    <div id="score">Puntos: 0</div>
-    <div id="game-container">
-        <canvas id="tetris" width="240" height="400"></canvas>
+    <div id="score">Level: 0 | Score: 0</div>
+    <div id="game-outer-container" style="display: flex; gap: 15px; align-items: flex-start; justify-content: center; width: 100%; max-width: 360px;">
+        <!-- Canvas Principal -->
+        <div id="game-container" style="border: 2px solid #fff;">
+            <canvas id="tetris" width="240" height="400"></canvas>
+        </div>
+        
+        <!-- Contenedor Lateral: Siguientes piezas y Botón -->
+        <div id="side-panel" style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+            <div style="text-align: center; font-size: 14px; font-weight: bold; color: #00ffcc;">SIGUIENTES</div>
+            <div style="border: 2px solid #555; background: #000; padding: 5px;">
+                <!-- Canvas de Siguientes Piezas (Ancho para albergar 2 piezas verticalmente) -->
+                <canvas id="nextPieces" width="80" height="160"></canvas>
+            </div>
+            <button id="pause-btn" style="padding: 10px 15px; font-size: 14px; width: 100%;">Pausa</button>
+        </div>
     </div>
     <div class="instructions">
         Desliza Lateral: Mover | Tocar: Rotar | Deslizar Abajo: Caída rápida
