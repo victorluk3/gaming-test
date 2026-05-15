@@ -6,8 +6,8 @@ const ASSETS = [
   './tetris/index.html',
   './tetris/scripts/tetris.js',
   './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+  './logo-192.png',
+  './logo-512.png'
 ];
 
 // Instalar el Service Worker y guardar archivos en caché
