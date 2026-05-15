@@ -1,7 +1,8 @@
 {
   "name": "Mini tetris",
   "short_name": "Tetris",
-  "start_url": "index.html",
+  "start_url": "/tetris/index.html",
+  "scope": "/tetris/",
   "display": "fullscreen",
   "orientation": "portrait",
   "background_color": "#ffffff",

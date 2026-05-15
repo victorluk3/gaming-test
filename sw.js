@@ -1,13 +1,11 @@
 // sw.js - Service Worker básico para permitir la instalación
-const CACHE_NAME = 'tetris-v1';
+const CACHE_NAME = 'gaming-test-v1';
 const ASSETS = [
   './',
   './index.html',
-  './tetris/index.html',
-  './tetris/scripts/tetris.js',
   './manifest.json',
-  './gaming-test/logo-192.png',
-  './gaming-test/logo-512.png'
+  './logo-192.png',
+  './logo-512.png'
 ];
 
 // Instalar el Service Worker y guardar archivos en caché

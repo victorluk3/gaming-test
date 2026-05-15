@@ -2,12 +2,11 @@
 const CACHE_NAME = 'tetris-v1';
 const ASSETS = [
   './',
-  './index.html',
-  './tetris/index.html',
-  './tetris/scripts/tetris.js',
-  './manifest.json',
-  './gaming-test/tetris/tetris192.png',
-  './gaming-test/tetris/tetris512.png'
+  '../index.html',
+  './tetris.js',
+  '../manifest.json',
+  '../tetris192.png',
+  '../tetris512.png'
 ];
 
 // Instalar el Service Worker y guardar archivos en caché
