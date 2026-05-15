@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Mobile Tetris JS</title>
+     <link rel="manifest" href="manifest.json">
     <style>
         body { background: #202028; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
         #game-container { position: relative; margin-top: 20px; border: 2px solid #fff; }
@@ -23,4 +24,14 @@
     </div>
     <script src="scripts/tetris.js"></script>
 </body>
+<script>
+      // Registrar el Service Worker para habilitar el modo PWA (Instalable)
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('scripts/sw.js')
+            .then(reg => console.log('Service Worker registrado con éxito', reg))
+            .catch(err => console.error('Error al registrar el Service Worker', err));
+        });
+      }
+  </script>
 </html>
