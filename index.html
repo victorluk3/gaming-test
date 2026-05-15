@@ -45,4 +45,14 @@
       </li>
     </ul>
   </body>
+  <script>
+      // Registrar el Service Worker para habilitar el modo PWA (Instalable)
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker registrado con éxito', reg))
+            .catch(err => console.error('Error al registrar el Service Worker', err));
+        });
+      }
+  </script>
 </html>
