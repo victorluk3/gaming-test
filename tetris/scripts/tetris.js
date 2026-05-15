@@ -19,6 +19,11 @@ let pieceQueue = [];
 
 context.scale(20, 20);
 
+function getRandomPieceType() {
+    const pieces = 'ILJOTSZ';
+    return pieces[pieces.length * Math.random() | 0];
+}
+
 // Llena la cola inicialmente con 3 piezas
 function initPieceQueue() {
     pieceQueue = [
