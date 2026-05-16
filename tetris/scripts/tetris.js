@@ -225,12 +225,12 @@ function restartGame() {
 let touchStartX = 0;
 let touchStartY = 0;
 
-canvas.addEventListener('touchstart', e => {
+document.addEventListener('touchstart', e => {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
 }, {passive: false});
 
-canvas.addEventListener('touchend', e => {
+document.addEventListener('touchend', e => {
     if (gameOver) {
         restartGame();
         e.preventDefault();
