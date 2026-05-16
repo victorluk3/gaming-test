@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sudoku Pro Mobile</title>
+    <script src="confetti.js"></script>
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --cell-bg: #ffffff;
+            --text-main: #2d3436;
+            --primary: #0984e3;
+            --error: #d63031;
+            --fixed: #636e72;
+            --thick-border: 3px solid #2d3436;
+            --thin-border: 1px solid #dfe6e9;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            color: var(--text-main);
+        }
+
+        h1 { margin: 10px 0; font-size: 1.5rem; }
+
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .controls {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        select, button.action-btn {
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background: white;
+            font-size: 0.9rem;
+        }
+
+        button.action-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* TABLERO */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            width: 95vw;
+            max-width: 400px;
+            aspect-ratio: 1 / 1;
+            border: var(--thick-border);
+            background-color: var(--text-main);
+            gap: 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .cell {
+            background-color: var(--cell-bg);
+            border: var(--thin-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.2rem, 5vw, 1.6rem);
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Subdivisiones 3x3 */
+        .cell:nth-child(3n) { border-right: var(--thick-border); }
+        .cell:nth-child(9n) { border-right: var(--thin-border); }
+        .cell:nth-child(n+19):nth-child(-n+27),
+        .cell:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: var(--thick-border);
+        }
+
+        .cell.selected { background-color: #e3f2fd; }
+        .cell.fixed { color: var(--fixed); font-weight: bold; background-color: #f1f2f6; }
+        .cell.error { color: var(--error); background-color: #fab1a0; }
+
+        /* TECLADO */
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
+        }
+
+        .numpad button {
+            height: 55px;
+            border-radius: 8px;
+            border: none;
+            background-color: var(--primary);
+            color: white;
+            font-size: 1.3rem;
+            font-weight: bold;
+            touch-action: manipulation;
+        }
+
+        .numpad button.erase { background-color: #636e72; }
+
+        /* OVERLAYS */
+        .overlay {
+            display: none;
+            position: fixed;
+            top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 10;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            text-align: center;
+        }
+
+        .victory-card {
+            background: white;
+            color: black;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px;
+        }
+
+        .shake { animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Sudoku JS</h1>
+
+    <div class="controls">
+        <select id="difficulty">
+            <option value="50">Fácil (50 pistas)</option>
+            <option value="35" selected>Medio (35 pistas)</option>
+            <option value="25">Difícil (25 pistas)</option>
+        </select>
+        <button class="action-btn" onclick="initGame()">Nuevo Juego</button>
+    </div>
+
+    <div class="header-info">
+        <div>Errores: <span id="error-count">0</span>/3</div>
+        <div id="timer">00:00</div>
+    </div>
+
+    <div id="grid" class="grid"></div>
+
+    <div class="numpad">
+        <button onclick="handleInput(1)">1</button>
+        <button onclick="handleInput(2)">2</button>
+        <button onclick="handleInput(3)">3</button>
+        <button onclick="handleInput(4)">4</button>
+        <button onclick="handleInput(5)">5</button>
+        <button onclick="handleInput(6)">6</button>
+        <button onclick="handleInput(7)">7</button>
+        <button onclick="handleInput(8)">8</button>
+        <button onclick="handleInput(9)">9</button>
+        <button class="erase" onclick="handleInput(0)">⌫</button>
+    </div>
+
+    <div id="victory-overlay" class="overlay">
+        <div class="victory-card">
+            <h2>🎉 ¡Felicidades!</h2>
+            <p id="stats-summary"></p>
+            <button class="action-btn" onclick="initGame()">Jugar otra vez</button>
+        </div>
+    </div>
+
+    <script>
+        let solution = [];
+        let puzzle = [];
+        let selectedCell = null;
+        let errors = 0;
+        let timer = 0;
+        let timerInterval;
+
+        function initGame() {
+            // Reset variables
+            errors = 0;
+            timer = 0;
+            selectedCell = null;
+            document.getElementById('error-count').innerText = errors;
+            document.getElementById('victory-overlay').style.display = 'none';
+            clearInterval(timerInterval);
+            
+            // Generar lógica
+            generateSudoku();
+            const hints = parseInt(document.getElementById('difficulty').value);
+            createPuzzle(hints);
+            renderBoard();
+            startTimer();
+        }
+
+        function generateSudoku() {
+            // Generador básico de tablero válido por desplazamiento
+            const board = Array(9).fill().map(() => Array(9).fill(0));
+            const fill = (r, c) => {
+                if (c === 9) { r++; c = 0; }
+                if (r === 9) return true;
+                let nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+                for (let n of nums) {
+                    if (isSafe(board, r, c, n)) {
+                        board[r][c] = n;
+                        if (fill(r, c + 1)) return true;
+                        board[r][c] = 0;
+                    }
+                }
+                return false;
+            };
+            fill(0, 0);
+            solution = board.map(row => [...row]);
+        }
+
+        function isSafe(b, r, c, n) {
+            for (let x = 0; x < 9; x++) {
+                if (b[r][x] === n || b[x][c] === n) return false;
+            }
+            let startR = r - r % 3, startC = c - c % 3;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (b[i + startR][j + startC] === n) return false;
+                }
+            }
+            return true;
+        }
+
+        function createPuzzle(hints) {
+            puzzle = solution.map(row => [...row]);
+            let toRemove = 81 - hints;
+            while (toRemove > 0) {
+                let r = Math.floor(Math.random() * 9);
+                let c = Math.floor(Math.random() * 9);
+                if (puzzle[r][c] !== 0) {
+                    puzzle[r][c] = 0;
+                    toRemove--;
+                }
+            }
+        }
+
+        function renderBoard() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (puzzle[r][c] !== 0) {
+                        cell.innerText = puzzle[r][c];
+                        cell.classList.add('fixed');
+                    } else {
+                        cell.dataset.r = r;
+                        cell.dataset.c = c;
+                        cell.onclick = function() {
+                            if (selectedCell) selectedCell.classList.remove('selected');
+                            selectedCell = this;
+                            selectedCell.classList.add('selected');
+                        };
+                    }
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function handleInput(num) {
+            if (!selectedCell || errors >= 3) return;
+            
+            const r = selectedCell.dataset.r;
+            const c = selectedCell.dataset.c;
+
+            if (num === 0) { // Borrar
+                selectedCell.innerText = '';
+                selectedCell.classList.remove('error');
+                return;
+            }
+
+            selectedCell.innerText = num;
+            if (num != solution[r][c]) {
+                errors++;
+                document.getElementById('error-count').innerText = errors;
+                selectedCell.classList.add('error');
+                document.getElementById('grid').classList.add('shake');
+                setTimeout(() => document.getElementById('grid').classList.remove('shake'), 200);
+                
+                if (errors >= 3) {
+                    alert("¡Game Over! Has cometido 3 errores.");
+                    initGame();
+                }
+            } else {
+                selectedCell.classList.remove('error');
+                selectedCell.classList.add('fixed');
+                selectedCell.onclick = null;
+                selectedCell.classList.remove('selected');
+                selectedCell = null;
+                checkWin();
+            }
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timer++;
+                let m = Math.floor(timer / 60).toString().padStart(2, '0');
+                let s = (timer % 60).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = `${m}:${s}`;
+            }, 1000);
+        }
+
+        function checkWin() {
+            const cells = document.querySelectorAll('.cell');
+            const done = Array.from(cells).every(c => c.innerText != '');
+            if (done) {
+                clearInterval(timerInterval);
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+                document.getElementById('stats-summary').innerText = 
+                    `Completado en ${document.getElementById('timer').innerText} con ${errors} errores.`;
+                document.getElementById('victory-overlay').style.display = 'flex';
+            }
+        }
+
+        // Auto-inicio
+        window.onload = initGame;
+    </script>
+</body>
+</html>
