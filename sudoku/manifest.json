@@ -1,0 +1,22 @@
+{
+  "name": "Sudoku",
+  "short_name": "Sudoku",
+  "start_url": "/sudoku/index.html",
+  "scope": "/sudoku/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ffcb05",
+  "icons": [
+    {
+      "src": "/gaming-test/sudoku/sudoku192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/gaming-test/sudoku/sudoku512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
