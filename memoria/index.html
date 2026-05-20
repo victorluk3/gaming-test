@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Memory Emojis - 2 Players</title>
+  <style>
+    /* RESET Y ESTILOS BASE */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* CABECERA (Stats en vivo) */
+    header {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      justify-content: space-between;
+      background: #1e1e1e;
+      padding: 15px 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    .stat { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .stat span { font-size: 0.8rem; color: #888; text-transform: uppercase; margin-top: 5px; }
+
+    /* Estilos dinámicos para los turnos (2 Jugadores) */
+    .active-turn {
+      color: #8b5cf6 !important;
+      transform: scale(1.15);
+      transition: all 0.3s ease;
+      text-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+    }
+    
+    .turn-indicator { font-size: 0.9rem; color: #8b5cf6; }
+
+    /* TABLERO DE JUEGO */
+    #game-board {
+      display: grid;
+      gap: 10px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    /* CARTAS Y ANIMACIÓN */
+    .card {
+      aspect-ratio: 1 / 1;
+      perspective: 1000px;
+      cursor: pointer;
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transition: transform 0.4s;
+      transform-style: preserve-3d;
+    }
+
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front, .card-back {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      backface-visibility: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .card-front {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .card-back {
+      background: #2a2a2a;
+      transform: rotateY(180deg);
+      border: 2px solid #333;
+    }
+
+    /* PANTALLAS MODALES */
+    .overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background: #1e1e1e;
+      padding: 30px;
+      border-radius: 16px;
+      text-align: center;
+      width: 90%;
+      max-width: 350px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .modal h2 { margin-bottom: 20px; font-size: 1.8rem; }
+    .modal p { margin-bottom: 10px; font-size: 1.1rem; color: #ccc; }
+    .modal .highlight { color: #8b5cf6; font-weight: bold; font-size: 1.3rem; }
+    
+    select {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0 20px 0;
+      border-radius: 8px;
+      background: #2a2a2a;
+      color: white;
+      border: 1px solid #444;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    button {
+      margin-top: 10px;
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    
+    button:active { background: #6366f1; }
+    .btn-secondary { background: #444; margin-top: 10px; }
+    .btn-secondary:active { background: #333; }
+
+    /* Clases de utilidad para ocultar/mostrar según modo */
+    .hide { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- UI Superior Dinámica -->
+  <header>
+    <div class="stat">
+      <div id="level-ui">-</div>
+      <span>Nivel</span>
+    </div>
+
+    <!-- UI 1 Jugador -->
+    <div class="stat ui-1p">
+      <div id="errors-ui">0</div>
+      <span>Errores</span>
+    </div>
+    <div class="stat ui-1p">
+      <div id="time-ui">00:00</div>
+      <span>Tiempo</span>
+    </div>
+
+    <!-- UI 2 Jugadores -->
+    <div class="stat ui-2p hide" id="p1-stat">
+      <div id="p1-score-ui">0</div>
+      <span>Jugador 1</span>
+    </div>
+    <div class="stat ui-2p hide turn-indicator">
+      <div>Turno de</div>
+      <div id="turn-ui" style="font-weight: bold; font-size: 1.2rem; margin-top: 2px;">J1</div>
+    </div>
+    <div class="stat ui-2p hide" id="p2-stat">
+      <div id="p2-score-ui">0</div>
+      <span>Jugador 2</span>
+    </div>
+  </header>
+
+  <!-- Contenedor de las cartas -->
+  <div id="game-board"></div>
+
+  <!-- PANTALLA DE INICIO -->
+  <div id="start-overlay" class="overlay active">
+    <div class="modal">
+      <h2>Memory Emojis</h2>
+      
+      <select id="mode-select">
+        <option value="1">👤 1 Jugador (Con Timer)</option>
+        <option value="2">👥 2 Jugadores (Por Turnos)</option>
+      </select>
+
+      <select id="level-select">
+        <option value="1">Nivel 1 (4 pares)</option>
+        <option value="2">Nivel 2 (6 pares)</option>
+        <option value="3">Nivel 3 (8 pares)</option>
+        <option value="4">Nivel 4 (10 pares)</option>
+        <option value="5">Nivel 5 (12 pares)</option>
+        <option value="6">Nivel 6 (14 pares)</option>
+        <option value="7">Nivel 7 (16 pares)</option>
+      </select>
+
+      <button onclick="startGame()">Empezar Juego</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA DE FIN DE RONDA -->
+  <div id="end-overlay" class="overlay">
+    <div class="modal">
+      <h2 id="modal-title">¡Ronda Superada!</h2>
+      
+      <!-- Stats 1 Jugador -->
+      <div id="modal-1p-stats">
+        <p>Errores: <span id="modal-errors" class="highlight">0</span></p>
+        <p>Tiempo sobrante: <span id="modal-time" class="highlight">0</span> seg</p>
+      </div>
+
+      <!-- Stats 2 Jugadores -->
+      <div id="modal-2p-stats" class="hide">
+        <p>Jugador 1: <span id="modal-p1" class="highlight">0</span> pts</p>
+        <p>Jugador 2: <span id="modal-p2" class="highlight">0</span> pts</p>
+      </div>
+
+      <p id="next-level-text">Siguiente Nivel: <span id="modal-next-level" class="highlight">2</span></p>
+      <button id="next-btn" onclick="startNextRound()">Siguiente Nivel</button>
+      <button class="btn-secondary" onclick="showStartScreen()">Volver al Menú</button>
+    </div>
+  </div>
+
+  <script>
+    const allEmojis = ['🍎', '🍌', '🍇', '🍉', '🍓', '🥑', '🥕', '🍕', '🍔', '🍟', '🍩', '🍦', '🚀', '🛸', '🎸', '🎮', '🏀', '⚽', '🎨', '🧩', '🐶', '🐱', '🦊', '🐼'];
+    
+    // Variables Generales
+    let currentLevel = 1;
+    let totalPairs = 0;
+    let matchedPairs = 0;
+    let cardsArray = [];
+    let isTwoPlayer = false;
+
+    // Estado del Tablero
+    let hasFlippedCard = false;
+    let lockBoard = false;
+    let firstCard, secondCard;
+
+    // Estado 1 Jugador
+    let errors = 0;
+    let timeRemaining = 0;
+    let timerInterval = null;
+
+    // Estado 2 Jugadores
+    let currentPlayer = 1;
+    let p1Score = 0;
+    let p2Score = 0;
+
+    // Elementos DOM
+    const boardElement = document.getElementById('game-board');
+    const levelUi = document.getElementById('level-ui');
+    const startOverlay = document.getElementById('start-overlay');
+    const endOverlay = document.getElementById('end-overlay');
+
+    // --- FLUJO DE PANTALLAS ---
+    function showStartScreen() {
+      clearInterval(timerInterval);
+      boardElement.innerHTML = '';
+      endOverlay.classList.remove('active');
+      startOverlay.classList.add('active');
+    }
+
+    function startGame() {
+      currentLevel = parseInt(document.getElementById('level-select').value);
+      isTwoPlayer = document.getElementById('mode-select').value === "2";
+      startOverlay.classList.remove('active');
+      initGame();
+    }
+
+    // --- INICIALIZACIÓN ---
+    function initGame() {
+      totalPairs = 2 + (currentLevel * 2); 
+      if (totalPairs > allEmojis.length) totalPairs = allEmojis.length;
+      
+      matchedPairs = 0;
+      hasFlippedCard = false;
+      lockBoard = false;
+      firstCard = null;
+      secondCard = null;
+
+      // Configurar UI según el modo
+      const els1p = document.querySelectorAll('.ui-1p');
+      const els2p = document.querySelectorAll('.ui-2p');
+
+      if (isTwoPlayer) {
+        currentPlayer = 1;
+        p1Score = 0;
+        p2Score = 0;
+        els1p.forEach(el => el.classList.add('hide'));
+        els2p.forEach(el => el.classList.remove('hide'));
+        clearInterval(timerInterval);
+      } else {
+        errors = 0;
+        timeRemaining = totalPairs * 5; 
+        els1p.forEach(el => el.classList.remove('hide'));
+        els2p.forEach(el => el.classList.add('hide'));
+        startTimer();
+      }
+
+      updateUI();
+      generateCards();
+    }
+
+    // --- GENERACIÓN DEL TABLERO ---
+    function generateCards() {
+      boardElement.innerHTML = ''; 
+      let selectedEmojis = allEmojis.slice(0, totalPairs);
+      cardsArray = [...selectedEmojis, ...selectedEmojis];
+      
+      // Barajar
+      for (let i = cardsArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cardsArray[i], cardsArray[j]] = [cardsArray[j], cardsArray[i]];
+      }
+
+      const cols = totalPairs <= 6 ? 4 : (totalPairs <= 10 ? 5 : 6);
+      boardElement.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+      cardsArray.forEach(emoji => {
+        const cardElement = document.createElement('div');
+        cardElement.classList.add('card');
+        cardElement.dataset.emoji = emoji;
+        cardElement.innerHTML = `
+          <div class="card-inner">
+            <div class="card-front">❓</div>
+            <div class="card-back">${emoji}</div>
+          </div>
+        `;
+        cardElement.addEventListener('click', flipCard);
+        boardElement.appendChild(cardElement);
+      });
+    }
+
+    // --- LÓGICA DE JUEGO ---
+    function flipCard() {
+      if (lockBoard) return;
+      if (this === firstCard) return; 
+
+      this.classList.add('flipped');
+
+      if (!hasFlippedCard) {
+        hasFlippedCard = true;
+        firstCard = this;
+        return;
+      }
+
+      secondCard = this;
+      checkForMatch();
+    }
+
+    function checkForMatch() {
+      let isMatch = firstCard.dataset.emoji === secondCard.dataset.emoji;
+
+      if (isMatch) {
+        // MATCH EXITOSO
+        disableCards();
+        matchedPairs++;
+        
+        if (isTwoPlayer) {
+          // Suma puntos al jugador actual (NO cambia el turno, gana otra oportunidad)
+          if (currentPlayer === 1) p1Score++;
+          else p2Score++;
+          updateUI();
+        }
+
+        // Comprobar si se terminó el tablero
+        if (matchedPairs === totalPairs) {
+          if (!isTwoPlayer) clearInterval(timerInterval);
+          setTimeout(showStats, 500); 
+        }
+      } else {
+        // FALLO
+        unflipCards();
+        if (isTwoPlayer) {
+          // Cambia de turno inmediatamente para feedback visual
+          currentPlayer = currentPlayer === 1 ? 2 : 1;
+        } else {
+          errors++;
+        }
+        updateUI();
+        if (navigator.vibrate) navigator.vibrate(50);
+      }
+    }
+
+    function disableCards() {
+      firstCard.removeEventListener('click', flipCard);
+      secondCard.removeEventListener('click', flipCard);
+      resetBoardState();
+    }
+
+    function unflipCards() {
+      lockBoard = true; 
+      setTimeout(() => {
+        firstCard.classList.remove('flipped');
+        secondCard.classList.remove('flipped');
+        resetBoardState();
+      }, 1000); 
+    }
+
+    function resetBoardState() {
+      [hasFlippedCard, lockBoard] = [false, false];
+      [firstCard, secondCard] = [null, null];
+    }
+
+    // --- TIMER Y UI ---
+    function startTimer() {
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timeRemaining--;
+        updateUI();
+
+        if (timeRemaining <= 0) {
+          clearInterval(timerInterval);
+          gameOver();
+        }
+      }, 1000);
+    }
+
+    function updateUI() {
+      levelUi.innerText = currentLevel;
+      
+      if (isTwoPlayer) {
+        document.getElementById('p1-score-ui').innerText = p1Score;
+        document.getElementById('p2-score-ui').innerText = p2Score;
+        document.getElementById('turn-ui').innerText = `J${currentPlayer}`;
+        
+        const p1Stat = document.getElementById('p1-stat');
+        const p2Stat = document.getElementById('p2-stat');
+        
+        if (currentPlayer === 1) {
+          p1Stat.classList.add('active-turn');
+          p2Stat.classList.remove('active-turn');
+          document.getElementById('turn-ui').style.color = '#8b5cf6';
+        } else {
+          p2Stat.classList.add('active-turn');
+          p1Stat.classList.remove('active-turn');
+          document.getElementById('turn-ui').style.color = '#ef4444'; // Rojo para J2
+        }
+      } else {
+        document.getElementById('errors-ui').innerText = errors;
+        const minutes = Math.floor(timeRemaining / 60);
+        const seconds = timeRemaining % 60;
+        document.getElementById('time-ui').innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+      }
+    }
+
+    // --- MODALES ---
+    function showStats() {
+      const title = document.getElementById('modal-title');
+      
+      if (isTwoPlayer) {
+        // Lógica de ganador 2P
+        if (p1Score > p2Score) {
+          title.innerText = "¡Jugador 1 Gana!";
+          title.style.color = "#8b5cf6";
+        } else if (p2Score > p1Score) {
+          title.innerText = "¡Jugador 2 Gana!";
+          title.style.color = "#ef4444";
+        } else {
+          title.innerText = "¡Empate!";
+          title.style.color = "#fff";
+        }
+        
+        document.getElementById('modal-1p-stats').classList.add('hide');
+        document.getElementById('modal-2p-stats').classList.remove('hide');
+        document.getElementById('modal-p1').innerText = p1Score;
+        document.getElementById('modal-p2').innerText = p2Score;
+
+      } else {
+        // Lógica 1P
+        title.innerText = "¡Ronda Superada!";
+        title.style.color = "#fff";
+        document.getElementById('modal-1p-stats').classList.remove('hide');
+        document.getElementById('modal-2p-stats').classList.add('hide');
+        document.getElementById('modal-errors').innerText = errors;
+        document.getElementById('modal-time').innerText = timeRemaining;
+      }
+      
+      document.getElementById('next-level-text').style.display = "block";
+      document.getElementById('modal-next-level').innerText = currentLevel + 1;
+      
+      const nextBtn = document.getElementById('next-btn');
+      nextBtn.style.display = "block";
+      nextBtn.innerText = "Siguiente Nivel";
+      nextBtn.onclick = startNextRound;
+
+      endOverlay.classList.add('active');
+    }
+
+    function gameOver() {
+      document.getElementById('modal-title').innerText = "¡Tiempo Agotado!";
+      document.getElementById('modal-title').style.color = "#ef4444"; 
+      document.getElementById('modal-errors').innerText = errors;
+      document.getElementById('modal-time').innerText = "0";
+      
+      document.getElementById('next-level-text').style.display = "none";
+      
+      const nextBtn = document.getElementById('next-btn');
+      nextBtn.style.display = "block";
+      nextBtn.innerText = "Reintentar Nivel " + currentLevel;
+      nextBtn.onclick = () => {
+        endOverlay.classList.remove('active');
+        initGame();
+      };
+
+      endOverlay.classList.add('active');
+    }
+
+    function startNextRound() {
+      currentLevel++;
+      endOverlay.classList.remove('active');
+      initGame();
+    }
+
+  </script>
+</body>
+</html>
