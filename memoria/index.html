@@ -344,7 +344,7 @@
         clearInterval(timerInterval);
       } else {
         errors = 0;
-        timeRemaining = totalPairs * 5; 
+        timeRemaining = (totalPairs * 5) + (currentLevel * 5); 
         els1p.forEach(el => el.classList.remove('hide'));
         els2p.forEach(el => el.classList.add('hide'));
         startTimer();
