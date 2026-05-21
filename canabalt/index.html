@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Canabalt Mobile Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #1a1a1a;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain;
+            background: #cfcfcf;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Resolución virtual fija para mantener proporciones perfectas en cualquier pantalla
+        const V_WIDTH = 800;
+        const V_HEIGHT = 450;
+
+        function initCanvas() {
+            canvas.width = V_WIDTH;
+            canvas.height = V_HEIGHT;
+        }
+        initCanvas();
+
+        // Estados del juego
+        const STATE_START = 0;
+        const STATE_PLAYING = 1;
+        const STATE_GAMEOVER = 2;
+        let gameState = STATE_START;
+
+        // Variables de control de juego
+        let score = 0;
+        let globalSpeed = 6;
+        const MIN_SPEED = 5;
+        const MAX_SPEED = 14;
+        const ACCELERATION = 0.0015;
+
+        // Configuración del jugador
+        const player = {
+            x: 160,
+            y: 200,
+            w: 18,
+            h: 32,
+            vy: 0,
+            gravity: 0.55,
+            jumpForce: -10.5,
+            isGrounded: false,
+            stumbled: false,
+            stumbleTimer: 0
+        };
+
+        let platforms = [];
+        let obstacles = [];
+
+        function resetGame() {
+            score = 0;
+            globalSpeed = MIN_SPEED;
+            gameState = STATE_PLAYING;
+            
+            player.x = 160;
+            player.y = 150;
+            player.vy = 0;
+            player.isGrounded = false;
+            player.stumbled = false;
+            player.stumbleTimer = 0;
+
+            // Primer edificio seguro debajo del jugador
+            platforms = [
+                { x: 0, y: 320, w: 550 }
+            ];
+            obstacles = [];
+
+            // Pre-generar edificios hacia la derecha
+            while (platforms[platforms.length - 1].x < V_WIDTH + 400) {
+                spawnPlatform();
+            }
+        }
+
+        function spawnPlatform() {
+            const last = platforms[platforms.length - 1];
+            
+            // Variaciones dinámicas según velocidad actual
+            const gap = Math.random() * (globalSpeed * 12) + 60; 
+            const width = Math.random() * 300 + 250;
+            
+            const lastY = last ? last.y : 320;
+            let nextY = lastY + (Math.random() * 120 - 60);
+            
+            // Forzar límites de altura dentro del viewport visible
+            nextY = Math.max(220, Math.min(380, nextY));
+
+            const newPlatform = { x: last.x + last.w + gap, y: nextY, w: width };
+            platforms.push(newPlatform);
+
+            // Probabilidad de meter un obstáculo (caja) encima del edificio
+            if (Math.random() > 0.45 && width > 300) {
+                const obsX = newPlatform.x + 100 + (Math.random() * (width - 160));
+                obstacles.push({
+                    x: obsX,
+                    y: nextY - 20,
+                    w: 20,
+                    h: 20,
+                    hit: false
+                });
+            }
+        }
+
+        function handleAction() {
+            if (gameState === STATE_START) {
+                resetGame();
+            } else if (gameState === STATE_PLAYING) {
+                if (player.isGrounded) {
+                    player.vy = player.jumpForce;
+                    player.isGrounded = false;
+                }
+            } else if (gameState === STATE_GAMEOVER) {
+                resetGame();
+            }
+        }
+
+        // Listeners táctiles y teclado híbrido
+        window.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Evita scroll y zoom accidental nativo en móvil
+            handleAction();
+        }, { passive: false });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                handleAction();
+            }
+        });
+
+        function update() {
+            if (gameState !== STATE_PLAYING) return;
+
+            // Incremento progresivo de velocidad
+            if (globalSpeed < MAX_SPEED) {
+                globalSpeed += ACCELERATION;
+            }
+
+            // Puntuación basada puramente en distancia recorrida
+            score += globalSpeed * 0.04;
+
+            // Desplazamiento del mapa hacia la izquierda
+            platforms.forEach(p => p.x -= globalSpeed);
+            obstacles.forEach(o => o.x -= globalSpeed);
+
+            // Limpieza de objetos que salen del viewport por la izquierda
+            if (platforms[0] && platforms[0].x + platforms[0].w < 0) platforms.shift();
+            if (obstacles[0] && obstacles[0].x + obstacles[0].w < 0) obstacles.shift();
+
+            // Buffer de generación continua
+            if (platforms[platforms.length - 1].x < V_WIDTH + 200) {
+                spawnPlatform();
+            }
+
+            // Gravedad y física del Runner
+            player.vy += player.gravity;
+            player.y += player.vy;
+
+            // Detección de colisiones: Techos de Edificios
+            let currentlyGrounded = false;
+            for (let p of platforms) {
+                if (player.x + player.w > p.x && player.x < p.x + p.w) {
+                    // Si el jugador cae sobre el techo y venía desde arriba
+                    if (player.y + player.h >= p.y && (player.y + player.h - player.vy) <= p.y + 12) {
+                        player.y = p.y - player.h;
+                        player.vy = 0;
+                        currentlyGrounded = true;
+                        break;
+                    }
+                }
+            }
+            player.isGrounded = currentlyGrounded;
+
+            // Detección de colisiones: Obstáculos (Cajas)
+            for (let o of obstacles) {
+                if (!o.hit &&
+                    player.x + player.w > o.x &&
+                    player.x < o.x + o.w &&
+                    player.y + player.h > o.y &&
+                    player.y < o.y + o.h) {
+                    
+                    o.hit = true;
+                    // Mecánica Canabalt: penalización drástica de velocidad por tropiezo
+                    globalSpeed = Math.max(MIN_SPEED, globalSpeed * 0.55);
+                    player.stumbled = true;
+                    player.stumbleTimer = 20; 
+                }
+            }
+
+            if (player.stumbled) {
+                player.stumbleTimer--;
+                if (player.stumbleTimer <= 0) player.stumbled = false;
+            }
+
+            // Condición de caída al vacío
+            if (player.y > V_HEIGHT) {
+                gameState = STATE_GAMEOVER;
+            }
+        }
+
+        function draw() {
+            // Fondo / Cielo Gris Canabalt
+            ctx.fillStyle = '#cfcfcf';
+            ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+
+            // Siluetas lejanas (Efecto Parallax simple estático)
+            ctx.fillStyle = '#bcbcbc';
+            ctx.fillRect(100, 150, 120, 300);
+            ctx.fillRect(340, 100, 160, 350);
+            ctx.fillRect(600, 180, 110, 270);
+
+            // Dibujar Edificios
+            platforms.forEach(p => {
+                ctx.fillStyle = '#4d4d4d';
+                ctx.fillRect(p.x, p.y, p.w, V_HEIGHT - p.y);
+                
+                // Línea de borde superior del edificio
+                ctx.fillStyle = '#737373';
+                ctx.fillRect(p.x, p.y, p.w, 4);
+            });
+
+            // Dibujar Obstáculos
+            obstacles.forEach(o => {
+                ctx.fillStyle = o.hit ? '#9e9e9e' : '#333333';
+                ctx.fillRect(o.x, o.y, o.w, o.h);
+                if (!o.hit) {
+                    ctx.strokeStyle = '#555555';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(o.x + 3, o.y + 3, o.w - 6, o.h - 6);
+                }
+            });
+
+            // Dibujar Jugador
+            ctx.fillStyle = player.stumbled ? '#a62b2b' : '#1a1a1a';
+            ctx.fillRect(player.x, player.y, player.w, player.h);
+
+            // Interfaz de Usuario (UI)
+            ctx.fillStyle = '#1a1a1a';
+            ctx.font = 'bold 22px "Courier New", monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText(`${Math.floor(score)}m`, 30, 45);
+
+            // Pantallas de Estado
+            if (gameState === STATE_START) {
+                ctx.fillStyle = 'rgba(217, 217, 217, 0.85)';
+                ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+                
+                ctx.fillStyle = '#1a1a1a';
+                ctx.textAlign = 'center';
+                ctx.font = 'bold 36px "Courier New", monospace';
+                ctx.fillText('CANABALT HTML5', V_WIDTH / 2, V_HEIGHT / 2 - 20);
+                ctx.font = '18px "Courier New", monospace';
+                ctx.fillText('Toca cualquier punto para saltar', V_WIDTH / 2, V_HEIGHT / 2 + 30);
+            } else if (gameState === STATE_GAMEOVER) {
+                ctx.fillStyle = 'rgba(26, 26, 26, 0.75)';
+                ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.font = 'bold 36px "Courier New", monospace';
+                ctx.fillText('FIN DEL JUEGO', V_WIDTH / 2, V_HEIGHT / 2 - 30);
+                ctx.font = '22px "Courier New", monospace';
+                ctx.fillText(`Distancia: ${Math.floor(score)} metros`, V_WIDTH / 2, V_HEIGHT / 2 + 15);
+                ctx.font = '16px "Courier New", monospace';
+                ctx.fillText('Toca para reiniciar', V_WIDTH / 2, V_HEIGHT / 2 + 65);
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Iniciar el loop principal
+        gameLoop();
+    </script>
+</body>
+</html>
